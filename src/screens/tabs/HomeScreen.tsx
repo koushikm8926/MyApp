@@ -58,31 +58,7 @@ export default function Home() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           
-          <View>
-            
-              <TouchableOpacity style={styles.primaryActionCard} onPress={() => navigation.navigate('Camera')}>
-                <LinearGradient
-                  colors={['#0787e2', '#0787e2']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.primaryActionGradient}
-                >
-                  <View style={styles.primaryActionContent}>
-                    <View style={styles.primaryActionIcon}>
-                      <Camera size={28} color="#0787e2" />
-                    </View>
-                    <View style={styles.primaryActionText}>
-                      <Text style={styles.primaryActionTitle}>New Inspection</Text>
-                      <Text style={styles.primaryActionDesc}>Start evaluating a vehicle</Text>
-                    </View>
-                    <View style={styles.primaryActionChevron}>
-                      <ChevronRight size={24} color="#FFF" />
-                    </View>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            
-          </View>
+
 
           <View style={styles.secondaryActionsGrid}>
             {[
