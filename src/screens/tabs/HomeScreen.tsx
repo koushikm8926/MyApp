@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car } from 'lucide-react-native';
+import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car, Lock } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -62,9 +62,9 @@ export default function Home() {
 
           <View style={styles.secondaryActionsGrid}>
             {[
-              { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Pre Hold\nCleaning",  color: "#ECFDF5", iconColor: "#10B981" },
-              { screen: null, icon: Ship,           label: "Bunker\nSurvey",    color: "#EFF6FF", iconColor: "#0787e2" },
-              { screen: null, icon: Layers,          label: "Combined\nInsp.",    color: "#FAF5FF", iconColor: "#8B5CF6" },
+              { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Pre Hold\nCleaning",  color: "#ECFDF5", iconColor: "#10B981", locked: false },
+              { screen: null, icon: Ship,           label: "Bunker\nSurvey",    color: "#EFF6FF", iconColor: "#0787e2", locked: true },
+              { screen: null, icon: Layers,          label: "Combined\nInsp.",    color: "#FAF5FF", iconColor: "#8B5CF6", locked: true },
             ].map((item, index) => (
               <View 
                 key={index}
@@ -72,14 +72,19 @@ export default function Home() {
               >
                 
                   <TouchableOpacity 
-                    style={styles.secondaryActionCard} 
-                    onPress={() => item.screen ? navigation.navigate(item.screen) : null}
-                    activeOpacity={item.screen ? 0.2 : 1}
+                    style={[styles.secondaryActionCard, item.locked && { opacity: 0.6 }]} 
+                    onPress={() => item.screen && !item.locked ? navigation.navigate(item.screen) : null}
+                    activeOpacity={item.screen && !item.locked ? 0.2 : 1}
                   >
                     <View style={[styles.secondaryIconContainer, { backgroundColor: item.color }]}>
                       <item.icon size={22} color={item.iconColor} />
                     </View>
                     <Text style={styles.secondaryActionLabel}>{item.label}</Text>
+                    {item.locked && (
+                      <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                        <Lock size={14} color="#94A3B8" />
+                      </View>
+                    )}
                   </TouchableOpacity>
                 
               </View>
