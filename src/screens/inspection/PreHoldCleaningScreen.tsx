@@ -77,40 +77,42 @@ export default function PreHoldCleaningScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerTextContainer}>
-          <Text style={styles.subtitle}>Inspection Steps</Text>
-          <Text style={styles.description}>Please complete all the necessary steps for the pre-hold cleaning inspection.</Text>
+          <Text style={styles.subtitle}>Inspection Sequence</Text>
+          <Text style={styles.description}>Follow this step-by-step guide to complete the pre-hold cleaning process efficiently.</Text>
         </View>
 
-        <View style={styles.optionsList}>
+        <View style={styles.timelineContainer}>
           {OPTIONS.map((item, index) => {
             const Icon = item.icon;
+            const isLast = index === OPTIONS.length - 1;
             return (
               <View 
                 key={item.id}
+                style={styles.timelineRow}
               >
+                <View style={styles.timelineConnector}>
+                  <LinearGradient
+                    colors={item.colors as [string, string]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.timelineIconBg}
+                  >
+                    <Icon size={20} color={item.iconColor} />
+                  </LinearGradient>
+                  {!isLast && <View style={styles.timelineLine} />}
+                </View>
+                
                 <TouchableOpacity 
-                  style={styles.cardContainer} 
-                  activeOpacity={item.screen ? 0.8 : 1}
+                  style={styles.timelineCard} 
+                  activeOpacity={item.screen ? 0.7 : 1}
                   onPress={() => item.screen ? navigation.navigate(item.screen as never) : null}
                 >
-                  <View style={styles.card}>
-                    <LinearGradient
-                      colors={item.colors as [string, string]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.iconGradient}
-                    >
-                      <Icon size={24} color={item.iconColor} />
-                    </LinearGradient>
-                    
-                    <View style={styles.cardContent}>
-                      <Text style={styles.cardTitle}>{item.title}</Text>
-                      <Text style={styles.cardDescription}>{item.description}</Text>
-                    </View>
-                    
-                    <View style={styles.chevronContainer}>
-                      <ChevronRight size={20} color="#94A3B8" />
-                    </View>
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <Text style={styles.cardDescription}>{item.description}</Text>
+                  </View>
+                  <View style={styles.chevronContainer}>
+                    <ChevronRight size={18} color="#94A3B8" />
                   </View>
                 </TouchableOpacity>
               </View>
@@ -168,18 +170,43 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 22,
   },
-  optionsList: {
+  timelineContainer: {
     paddingHorizontal: 24,
+    paddingTop: 8,
   },
-  cardContainer: {
-    marginBottom: 16,
+  timelineRow: {
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  timelineConnector: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 48,
+    zIndex: 10,
+  },
+  timelineIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    zIndex: 2,
   },
-  card: {
+  timelineLine: {
+    position: 'absolute',
+    top: 48,
+    bottom: -24,
+    width: 2,
+    backgroundColor: '#E2E8F0',
+    zIndex: 1,
+  },
+  timelineCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -187,21 +214,18 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-  },
-  iconGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   cardContent: {
     flex: 1,
-    marginLeft: 16,
-    marginRight: 8,
+    marginRight: 12,
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 4,
