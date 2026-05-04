@@ -21,6 +21,10 @@ export default function Login() {
       setError('Please enter your email');
       return;
     }
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      setError('Please enter a valid @gmail.com address');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
