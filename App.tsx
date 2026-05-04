@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Car, ClipboardList, Settings as SettingsIcon, Camera, LayoutGrid } from 'lucide-react-native';
+import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid } from 'lucide-react-native';
 
 // Stores
 import { useAuthStore } from './src/store/useAuthStore';
@@ -18,7 +18,7 @@ import HomeScreen from './src/screens/tabs/HomeScreen';
 import HistoryScreen from './src/screens/tabs/HistoryScreen';
 import VehiclesScreen from './src/screens/tabs/VehiclesScreen';
 import SettingsScreen from './src/screens/tabs/SettingsScreen';
-import CameraScreen from './src/screens/tabs/CameraScreen';
+
 
 import InspectionScreen from './src/screens/inspection/InspectionScreen';
 import InspectionChecklistScreen from './src/screens/inspection/InspectionChecklistScreen';
@@ -66,43 +66,6 @@ function TabNavigator() {
         options={{
           tabBarLabel: 'Vehicles',
           tabBarIcon: ({ color }) => <Car size={24} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="Camera"
-        component={CameraScreen}
-        options={{
-          tabBarLabel: '',
-          tabBarIcon: () => null,
-          tabBarButton: ({ onPress }: any) => (
-            <TouchableOpacity
-              onPress={onPress}
-              activeOpacity={0.8}
-              style={{
-                top: -20,
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <View style={{
-                width: 60,
-                height: 60,
-                borderRadius: 30,
-                backgroundColor: '#0787e2',
-                justifyContent: 'center',
-                alignItems: 'center',
-                shadowColor: '#0787e2',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 5,
-                borderWidth: 4,
-                borderColor: '#ffffff',
-              }}>
-                <Camera size={24} color="#ffffff" />
-              </View>
-            </TouchableOpacity>
-          ),
         }}
       />
       <Tab.Screen
