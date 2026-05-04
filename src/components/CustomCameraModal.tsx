@@ -72,7 +72,7 @@ export default function CustomCameraModal({ visible, onClose, onPictureTaken, gu
     if (cameraRef.current && !isValidating) {
       try {
         setIsValidating(true);
-        const photo = await cameraRef.current.takePhoto({ qualityPrioritization: 'balanced' });
+        const photo = await cameraRef.current.takePhoto();
         const uri = `file://${photo.path}`;
 
         const validation = await imageValidationService.validateImage(uri);

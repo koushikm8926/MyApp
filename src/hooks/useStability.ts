@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Accelerometer } from 'react-native-sensors';
+import { accelerometer, setUpdateIntervalForType, SensorTypes } from 'react-native-sensors';
 import { Subscription } from 'rxjs';
 
 export const useStability = (threshold = 0.05) => {
@@ -11,7 +11,7 @@ export const useStability = (threshold = 0.05) => {
     let prevData = { x: 0, y: 0, z: 0 };
 
     try {
-      const accelerometer = new Accelerometer({ updateInterval: 100 });
+      setUpdateIntervalForType(SensorTypes.accelerometer, 100);
 
       subscription = accelerometer.subscribe({
         next: (accelerometerData: { x: number; y: number; z: number }) => {

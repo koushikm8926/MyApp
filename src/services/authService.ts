@@ -1,7 +1,7 @@
 import { secureStorage } from './secureStore';
 
 // Mock delay to simulate network requests
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(() => resolve(undefined), ms));
 
 export const authService = {
   async sendOtp(email: string) {

@@ -25,7 +25,7 @@ export const syncService = {
         console.log(`Processing sync item ${item.id}: ${item.action}`);
 
         // HERE: Call actual API based on action (e.g., uploadInspection)
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(() => resolve(undefined), 500));
 
         // On success, remove from queue
         await db.executeSql('DELETE FROM sync_queue WHERE id = ?', [item.id]);

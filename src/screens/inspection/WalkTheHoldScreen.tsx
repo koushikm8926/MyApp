@@ -16,7 +16,7 @@ const INITIAL_HOLDS = [
 ];
 
 export default function WalkTheHoldScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   
   // For demo purposes, we hold the state here. 
@@ -77,7 +77,7 @@ export default function WalkTheHoldScreen() {
                 <TouchableOpacity 
                   style={[styles.cardContainer, isCompleted && styles.cardCompleted]} 
                   activeOpacity={0.8}
-                  onPress={() => navigation.navigate('HoldDetails' as never, { holdId: item.id, title: item.title } as never)}
+                  onPress={() => navigation.navigate('HoldDetails', { holdId: item.id, title: item.title })}
                 >
                   <View style={styles.card}>
                     <View style={[styles.iconContainer, isCompleted && styles.iconCompleted]}>

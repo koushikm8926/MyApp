@@ -43,10 +43,7 @@ export default function InspectionChecklist() {
   };
 
   const handleStepPress = (step: InspectionStep) => {
-    router.push({
-      pathname: `/inspection/${id}`,
-      params: { stepId: step.id, label: step.label }
-    });
+    navigation.navigate('Inspection', { id, stepId: step.id, label: step.label });
   };
 
   const handleFinish = async () => {
@@ -59,7 +56,7 @@ export default function InspectionChecklist() {
     }
 
     await saveInspectionData(id as string, {});
-    router.replace('/(tabs)/history');
+    navigation.replace('Tabs', { screen: 'History' });
   };
 
   if (loading) {
