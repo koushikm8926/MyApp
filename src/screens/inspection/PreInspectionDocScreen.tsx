@@ -46,6 +46,25 @@ export default function PreInspectionDocScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
 
+  const handlePress = (id: string) => {
+    switch (id) {
+      case 'vessel-particulars':
+        navigation.navigate('VesselParticular' as never);
+        break;
+      case 'crew-list':
+        navigation.navigate('CrewList' as never);
+        break;
+      case 'cleaning-equipments':
+        navigation.navigate('CleaningEquipment' as never);
+        break;
+      case 'last-3-cargos':
+        navigation.navigate('LastCargo' as never);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -75,7 +94,11 @@ export default function PreInspectionDocScreen() {
               <View 
                 key={item.id}
               >
-                <TouchableOpacity style={styles.cardContainer} activeOpacity={0.8}>
+                <TouchableOpacity 
+                  style={styles.cardContainer} 
+                  activeOpacity={0.8}
+                  onPress={() => handlePress(item.id)}
+                >
                   <View style={styles.card}>
                     <LinearGradient
                       colors={item.colors as [string, string]}

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { databaseService, InspectionRecord, PhotoRecord } from '../../services/databaseService';
-import { CheckCircle2, Clock, MapPin, Calendar, User, ArrowLeft, Car, Shield, Hash, Image as ImageIcon, ChevronRight, Ship, PaintBucket, FileText, Download, Droplets } from 'lucide-react-native';
+import { CheckCircle2, Clock, MapPin, Calendar, User, ArrowLeft, Car, Shield, Hash, Image as ImageIcon, ChevronRight, Ship, PaintBucket, FileText, Download, Droplets, Users, Wrench } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'react-native-linear-gradient';
 
@@ -59,6 +59,10 @@ export default function InspectionDetails() {
   const particulars = data.vesselParticulars || {};
   const standards = data.cleaningStandards || {};
   const waterData = data.daysFreshWater || {};
+
+  const crewListData = data.crewList || {};
+  const equipmentData = data.cleaningEquipment || {};
+  const cargoHistory = data.lastCargoHistory || {};
 
   const renderInfoRow = (label: string, value: string | boolean | number | undefined) => {
     const isEmpty = value === undefined || value === null || value === '';
@@ -145,6 +149,50 @@ export default function InspectionDetails() {
               </>
             ) : (
               <Text style={styles.pendingText}>No vessel particulars recorded for this inspection.</Text>
+            )}
+          </View>
+        ))}
+
+        {renderSection('Crew List', Users, '#10B981', (
+          <View style={styles.gridContainer}>
+            {hasData(crewListData) ? (
+              <>
+                {renderInfoRow('Total Crew', crewListData.totalCrew)}
+                {renderInfoRow('Master', crewListData.masterName)}
+                {renderInfoRow('Chief Officer', crewListData.chiefOfficerName)}
+                {renderInfoRow('Nationality', crewListData.nationality)}
+              </>
+            ) : (
+              <Text style={styles.pendingText}>No crew details recorded yet.</Text>
+            )}
+          </View>
+        ))}
+
+        {renderSection('Cleaning Equipment', Wrench, '#F59E0B', (
+          <View style={styles.gridContainer}>
+            {hasData(equipmentData) ? (
+              <>
+                {renderInfoRow('High Pressure', equipmentData.highPressureMachines)}
+                {renderInfoRow('Chemicals (L)', equipmentData.chemicalsQuantity)}
+                {renderInfoRow('Brushes/Brooms', equipmentData.brushesBrooms)}
+                {renderInfoRow('Scrapers', equipmentData.scrapers)}
+              </>
+            ) : (
+              <Text style={styles.pendingText}>No equipment inventory recorded yet.</Text>
+            )}
+          </View>
+        ))}
+
+        {renderSection('Cargo History', Package, '#8B5CF6', (
+          <View style={styles.gridContainer}>
+            {hasData(cargoHistory) ? (
+              <>
+                {renderInfoRow('Last Cargo', cargoHistory.lastCargo)}
+                {renderInfoRow('2nd Last', cargoHistory.secondLastCargo)}
+                {renderInfoRow('3rd Last', cargoHistory.thirdLastCargo)}
+              </>
+            ) : (
+              <Text style={styles.pendingText}>No cargo history recorded yet.</Text>
             )}
           </View>
         ))}

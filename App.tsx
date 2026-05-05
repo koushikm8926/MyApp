@@ -26,6 +26,9 @@ import InspectionDetailsScreen from './src/screens/inspection/InspectionDetailsS
 import PreHoldCleaningScreen from './src/screens/inspection/PreHoldCleaningScreen';
 import PreInspectionDocScreen from './src/screens/inspection/PreInspectionDocScreen';
 import VesselParticularScreen from './src/screens/inspection/VesselParticularScreen';
+import CrewListScreen from './src/screens/inspection/CrewListScreen';
+import CleaningEquipmentScreen from './src/screens/inspection/CleaningEquipmentScreen';
+import LastCargoScreen from './src/screens/inspection/LastCargoScreen';
 import CleaningStandardsScreen from './src/screens/inspection/CleaningStandardsScreen';
 import WalkTheHoldScreen from './src/screens/inspection/WalkTheHoldScreen';
 import HoldDetailsScreen from './src/screens/inspection/HoldDetailsScreen';
@@ -111,6 +114,9 @@ function MainNavigator() {
       <Stack.Screen name="PreHoldCleaning" component={PreHoldCleaningScreen} />
       <Stack.Screen name="PreInspectionDoc" component={PreInspectionDocScreen} />
       <Stack.Screen name="VesselParticular" component={VesselParticularScreen} />
+      <Stack.Screen name="CrewList" component={CrewListScreen} />
+      <Stack.Screen name="CleaningEquipment" component={CleaningEquipmentScreen} />
+      <Stack.Screen name="LastCargo" component={LastCargoScreen} />
       <Stack.Screen name="CleaningStandards" component={CleaningStandardsScreen} />
       <Stack.Screen name="WalkTheHold" component={WalkTheHoldScreen} />
       <Stack.Screen name="HoldDetails" component={HoldDetailsScreen} />
