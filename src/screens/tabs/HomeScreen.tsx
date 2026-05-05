@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Platform, Image, Modal, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car, Lock } from 'lucide-react-native';
+import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car, Lock, X, Plus } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
+import { databaseService } from '../../services/databaseService';
 import { LinearGradient } from 'react-native-linear-gradient';
 
 const { width } = Dimensions.get('window');
@@ -15,11 +16,41 @@ export default function Home() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [selectedScreen, setSelectedScreen] = useState<string | null>(null);
+
   useEffect(() => {
     if (user) {
       loadInspections(user.id);
+      loadVehicles(user.id);
     }
   }, [user]);
+
+  const loadVehicles = async (userId: string) => {
+    try {
+      const data = await databaseService.getVehicles(userId);
+      setVehicles(data);
+    } catch (err) {
+      console.error('Failed to load vehicles', err);
+    }
+  };
+
+  const handleActionPress = (screen: string | null, locked: boolean) => {
+    if (!screen || locked) return;
+    setSelectedScreen(screen);
+    setModalVisible(true);
+  };
+
+  const handleSelectVehicle = (vehicle: any) => {
+    setModalVisible(false);
+    if (selectedScreen) {
+      navigation.navigate(selectedScreen, { 
+        vehicleId: vehicle.id, 
+        vehicleName: `${vehicle.make} ${vehicle.model}` 
+      });
+    }
+  };
 
   const recentInspections = inspections.slice(0, 3);
   const totalInspections = inspections.length;
@@ -73,7 +104,7 @@ export default function Home() {
                 
                   <TouchableOpacity 
                     style={[styles.secondaryActionCard, item.locked && { opacity: 0.6 }]} 
-                    onPress={() => item.screen && !item.locked ? navigation.navigate(item.screen) : null}
+                    onPress={() => handleActionPress(item.screen, item.locked)}
                     activeOpacity={item.screen && !item.locked ? 0.2 : 1}
                   >
                     <View style={[styles.secondaryIconContainer, { backgroundColor: item.color }]}>
@@ -131,6 +162,67 @@ export default function Home() {
         </View>
 
       </ScrollView>
+
+      {/* Vehicle Selection Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isModalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom || 24 }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Select Vehicle</Text>
+                <Text style={styles.modalSubtitle}>Which vehicle are you inspecting?</Text>
+              </View>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+                <X size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {vehicles.length > 0 ? (
+              <FlatList
+                data={vehicles}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+                style={styles.vehicleList}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={styles.vehicleItem}
+                    onPress={() => handleSelectVehicle(item)}
+                  >
+                    <View style={styles.vehicleIconBg}>
+                      <Car size={24} color="#0787e2" />
+                    </View>
+                    <View style={styles.vehicleInfo}>
+                      <Text style={styles.vehicleMakeModel}>{item.make} {item.model}</Text>
+                      <Text style={styles.vehiclePlate}>{item.plate || 'No Plate'} • {item.year || 'N/A'}</Text>
+                    </View>
+                    <ChevronRight size={20} color="#CBD5E1" />
+                  </TouchableOpacity>
+                )}
+              />
+            ) : (
+              <View style={styles.emptyVehicles}>
+                <Car size={48} color="#CBD5E1" style={{ marginBottom: 16 }} />
+                <Text style={styles.emptyVehiclesText}>No vehicles in your garage.</Text>
+                <TouchableOpacity 
+                  style={styles.addVehicleBtn}
+                  onPress={() => {
+                    setModalVisible(false);
+                    navigation.navigate('Vehicles');
+                  }}
+                >
+                  <Plus size={20} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.addVehicleBtnText}>Add a Vehicle</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -370,5 +462,100 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 14,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 24,
+    paddingHorizontal: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vehicleList: {
+    maxHeight: 400,
+  },
+  vehicleItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  vehicleIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  vehicleInfo: {
+    flex: 1,
+  },
+  vehicleMakeModel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  vehiclePlate: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  emptyVehicles: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyVehiclesText: {
+    fontSize: 15,
+    color: '#64748B',
+    marginBottom: 24,
+  },
+  addVehicleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0787e2',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  addVehicleBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
