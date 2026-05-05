@@ -2,8 +2,9 @@ import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, ChevronRight, ClipboardList, Users, Wrench, Package } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { useInspectionStore } from '../../store/useInspectionStore';
+import { ArrowLeft, ChevronRight, ClipboardList, Users, Wrench, Package, CheckCircle2 } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ const DOC_OPTIONS = [
     icon: ClipboardList,
     colors: ['#0787e2', '#45a6f0'],
     iconColor: '#FFF',
+    dataKey: 'vesselParticulars'
   },
   {
     id: 'crew-list',
@@ -23,6 +25,7 @@ const DOC_OPTIONS = [
     icon: Users,
     colors: ['#10B981', '#34D399'],
     iconColor: '#FFF',
+    dataKey: 'crewList'
   },
   {
     id: 'cleaning-equipments',
@@ -31,6 +34,7 @@ const DOC_OPTIONS = [
     icon: Wrench,
     colors: ['#F59E0B', '#FBBF24'],
     iconColor: '#FFF',
+    dataKey: 'cleaningEquipment'
   },
   {
     id: 'last-3-cargos',
@@ -39,12 +43,22 @@ const DOC_OPTIONS = [
     icon: Package,
     colors: ['#8B5CF6', '#A78BFA'],
     iconColor: '#FFF',
+    dataKey: 'lastCargoHistory'
   },
 ];
 
 export default function PreInspectionDocScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { currentInspection } = useInspectionStore();
+
+  const data = currentInspection ? JSON.parse(currentInspection.data || '{}') : {};
+
+  const isCompleted = (key: string) => {
+    const sectionData = data[key];
+    if (!sectionData) return false;
+    return Object.values(sectionData).some(v => v !== '' && v !== null && v !== undefined);
+  };
 
   const handlePress = (id: string) => {
     switch (id) {
@@ -90,6 +104,8 @@ export default function PreInspectionDocScreen() {
         <View style={styles.optionsList}>
           {DOC_OPTIONS.map((item, index) => {
             const Icon = item.icon;
+            const completed = isCompleted(item.dataKey);
+            
             return (
               <View 
                 key={item.id}
@@ -99,7 +115,7 @@ export default function PreInspectionDocScreen() {
                   activeOpacity={0.8}
                   onPress={() => handlePress(item.id)}
                 >
-                  <View style={styles.card}>
+                  <View style={[styles.card, completed && styles.cardCompleted]}>
                     <LinearGradient
                       colors={item.colors as [string, string]}
                       start={{ x: 0, y: 0 }}
@@ -110,12 +126,20 @@ export default function PreInspectionDocScreen() {
                     </LinearGradient>
                     
                     <View style={styles.cardContent}>
-                      <Text style={styles.cardTitle}>{item.title}</Text>
+                      <View style={styles.titleRow}>
+                        <Text style={styles.cardTitle}>{item.title}</Text>
+                        {completed && (
+                          <View style={styles.completedBadge}>
+                            <CheckCircle2 size={12} color="#10B981" />
+                            <Text style={styles.completedText}>DONE</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={styles.cardDescription}>{item.description}</Text>
                     </View>
                     
                     <View style={styles.chevronContainer}>
-                      <ChevronRight size={20} color="#94A3B8" />
+                      <ChevronRight size={20} color={completed ? "#10B981" : "#94A3B8"} />
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -193,6 +217,30 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#F1F5F9',
+  },
+  cardCompleted: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 4,
+  },
+  completedText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#10B981',
   },
   iconGradient: {
     width: 56,
