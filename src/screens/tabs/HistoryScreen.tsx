@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image, TextInput, Platform } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image, TextInput, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useInspectionStore } from '../../store/useInspectionStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -13,6 +13,7 @@ export default function History() {
   const { user } = useAuthStore();
   const [photos, setPhotos] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -39,9 +40,17 @@ export default function History() {
     if (user) loadInspections(user.id);
   }, [user]);
 
-  const filteredInspections = inspections.filter(item => 
-    item.vehicleName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Group by Vehicle ID and show only the most recent inspection per car
+  const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vehicleId, item])).values());
+
+  const filteredInspections = uniqueInspections.filter(item => {
+    const matchesSearch = item.vehicleName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         item.vehiclePlate?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -53,6 +62,15 @@ export default function History() {
         return { color: '#0787e2', bg: '#EEF2FF', icon: Clock, label: 'DRAFT' };
     }
   };
+
+  const renderFilterChip = (id: string, label: string) => (
+    <TouchableOpacity 
+      style={[styles.filterChip, statusFilter === id && styles.filterChipActive]}
+      onPress={() => setStatusFilter(id)}
+    >
+      <Text style={[styles.filterChipText, statusFilter === id && styles.filterChipTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   const renderItem = ({ item, index }: { item: any, index: number }) => {
     const status = getStatusConfig(item.status);
@@ -79,9 +97,12 @@ export default function History() {
             </View>
             <View style={styles.cardInfo}>
               <Text style={styles.vehicleName} numberOfLines={1}>{item.vehicleName || 'Untitled Inspection'}</Text>
+              <View style={styles.plateBadgeSmall}>
+                <Text style={styles.plateBadgeTextSmall}>{item.vehiclePlate || 'N/A'}</Text>
+              </View>
               <View style={styles.dateRow}>
                 <Calendar size={12} color="#94A3B8" />
-                <Text style={styles.dateText}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                <Text style={styles.dateText}>{new Date(item.createdAt).toLocaleDateString()} • {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
             </View>
             <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
@@ -91,19 +112,8 @@ export default function History() {
           </View>
           
           <View style={styles.cardFooter}>
-            <View style={styles.detailsRow}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Photos</Text>
-                <Text style={styles.detailValue}>12</Text>
-              </View>
-              <View style={styles.detailDivider} />
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>Type</Text>
-                <Text style={styles.detailValue}>Full</Text>
-              </View>
-            </View>
             <View style={styles.viewAction}>
-              <Text style={styles.viewText}>View</Text>
+              <Text style={styles.viewText}>View Report</Text>
               <ChevronRight size={16} color="#0787e2" />
             </View>
           </View>
@@ -121,16 +131,20 @@ export default function History() {
             <Search size={20} color="#94A3B8" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search vehicles..."
+              placeholder="Search by name or plate..."
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#94A3B8"
             />
           </View>
-          <TouchableOpacity style={styles.filterBtn}>
-            <Filter size={20} color="#0787e2" />
-          </TouchableOpacity>
         </View>
+        
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+          {renderFilterChip('all', 'All')}
+          {renderFilterChip('uploaded', 'Completed')}
+          {renderFilterChip('pending', 'Pending')}
+          {renderFilterChip('draft', 'Drafts')}
+        </ScrollView>
       </View>
 
       {isLoading && inspections.length === 0 ? (
@@ -145,14 +159,8 @@ export default function History() {
             </View>
             <Text style={styles.emptyTitle}>No inspections found</Text>
             <Text style={styles.emptySubtitle}>
-              {searchQuery ? `No results for "${searchQuery}"` : "You haven't performed any inspections yet."}
+              {searchQuery ? `No results for "${searchQuery}"` : "You haven't performed any inspections in this category."}
             </Text>
-            <TouchableOpacity 
-              style={styles.startBtn}
-              onPress={() => navigation.navigate('Camera')}
-            >
-              <Text style={styles.startBtnText}>Start New Inspection</Text>
-            </TouchableOpacity>
           </View>
         </View>
       ) : (
@@ -394,5 +402,45 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  plateBadgeSmall: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    marginBottom: 4,
+    borderWidth: 0.5,
+    borderColor: '#CBD5E1',
+  },
+  plateBadgeTextSmall: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  filterScroll: {
+    marginTop: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  filterChipActive: {
+    backgroundColor: '#0787e2',
+    borderColor: '#0787e2',
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
   },
 });

@@ -117,10 +117,6 @@ export default function InspectionDetails() {
             <Calendar size={16} color="#64748B" />
             <Text style={styles.metaText}>{new Date(inspection.createdAt).toLocaleDateString()}</Text>
           </View>
-          <View style={styles.metaCard}>
-            <User size={16} color="#64748B" />
-            <Text style={styles.metaText}>Inspector: {inspection.userId.substring(0, 8)}</Text>
-          </View>
           <View style={[styles.statusTag, { backgroundColor: inspection.status === 'uploaded' ? '#DCFCE7' : '#FEF3C7' }]}>
             <Text style={[styles.statusTagText, { color: inspection.status === 'uploaded' ? '#15803D' : '#B45309' }]}>
               {inspection.status.toUpperCase()}
