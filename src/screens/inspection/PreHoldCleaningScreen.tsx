@@ -68,7 +68,14 @@ export default function PreHoldCleaningScreen() {
 
   const inspectionData = currentInspection ? JSON.parse(currentInspection.data || '{}') : {};
 
-  const isStepCompleted = (dataKey: string) => {
+  const isStepCompleted = (id: string, dataKey: string) => {
+    if (id === 'pre-inspection') {
+      const subKeys = ['vesselParticulars', 'crewList', 'cleaningEquipment', 'lastCargoHistory'];
+      return subKeys.every(key => {
+        const section = inspectionData[key];
+        return section && Object.keys(section).length > 0 && Object.values(section).some(v => v !== '' && v !== null && v !== undefined);
+      });
+    }
     return !!inspectionData[dataKey];
   };
 
@@ -98,7 +105,7 @@ export default function PreHoldCleaningScreen() {
           {OPTIONS.map((item, index) => {
             const Icon = item.icon;
             const isLast = index === OPTIONS.length - 1;
-            const completed = isStepCompleted(item.dataKey);
+            const completed = isStepCompleted(item.id, item.dataKey);
 
             return (
               <View 
