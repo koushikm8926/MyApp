@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Switch, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, Switch, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Save, PaintBucket, CheckCircle2, Circle } from 'lucide-react-native';
+import { ArrowLeft, Save, PaintBucket, CheckCircle2, Circle, Check, X } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { useInspectionStore } from '../../store/useInspectionStore';
 
 const STANDARDS = [
   { id: 'hospital', label: 'Hospital Clean', desc: 'Highest standard, odorless, completely clear of residues.' },
@@ -14,6 +15,7 @@ const STANDARDS = [
 export default function CleaningStandardsScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { currentInspection, saveInspectionData } = useInspectionStore();
 
   const [formData, setFormData] = useState({
     standard: 'grain',
@@ -22,9 +24,38 @@ export default function CleaningStandardsScreen() {
     remarks: '',
   });
 
-  const handleSave = () => {
-    // Save logic would go here
-    navigation.goBack();
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    if (currentInspection) {
+      const data = JSON.parse(currentInspection.data || '{}');
+      if (data.cleaningStandards) {
+        setFormData({ ...formData, ...data.cleaningStandards });
+      }
+    }
+  }, [currentInspection]);
+
+  const handleSave = async () => {
+    if (!currentInspection) return;
+    
+    setIsSaving(true);
+    try {
+      await saveInspectionData(currentInspection.id, {
+        cleaningStandards: formData
+      });
+      
+      setIsSaving(false);
+      setShowSuccess(true);
+      
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.goBack();
+      }, 1500);
+    } catch (err) {
+      setIsSaving(false);
+      console.error('Save failed', err);
+    }
   };
 
   return (
@@ -44,6 +75,18 @@ export default function CleaningStandardsScreen() {
         <Text style={styles.headerTitle}>Cleaning Standards</Text>
         <View style={{ width: 40 }} />
       </LinearGradient>
+
+      {showSuccess && (
+        <View style={[styles.successToast, { top: insets.top + 80 }]}>
+          <LinearGradient
+            colors={['#F59E0B', '#D97706']}
+            style={styles.toastGradient}
+          >
+            <Check size={20} color="#FFFFFF" />
+            <Text style={styles.successText}>Standards Saved Successfully!</Text>
+          </LinearGradient>
+        </View>
+      )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.iconHeader}>
@@ -133,9 +176,24 @@ export default function CleaningStandardsScreen() {
       </ScrollView>
       
       <View style={[styles.footer, { paddingBottom: insets.bottom || 24 }]}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Save size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.saveButtonText}>Save Standards</Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, isSaving && { opacity: 0.8 }]} 
+          onPress={handleSave}
+          disabled={isSaving || showSuccess}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : showSuccess ? (
+            <>
+              <Check size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.saveButtonText}>Saved!</Text>
+            </>
+          ) : (
+            <>
+              <Save size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.saveButtonText}>Save Standards</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -308,5 +366,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  successToast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 100,
+    alignItems: 'center',
+  },
+  toastGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  successText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginLeft: 10,
+    fontSize: 15,
   },
 });
