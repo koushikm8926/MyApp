@@ -7,7 +7,9 @@ import Photo from '../database/models/Photo';
 export interface InspectionRecord {
   id: string;
   userId: string;
+  vehicleId: string;
   vehicleName: string;
+  vehiclePlate: string;
   status: 'draft' | 'pending' | 'completed' | 'uploaded';
   data: string; // JSON string
   createdAt: string;
@@ -30,7 +32,9 @@ export const databaseService = {
         await database.collections.get<Inspection>('inspections').create((i: any) => {
           i._raw.id = inspection.id;
           i.userId = inspection.userId;
+          i.vehicleId = inspection.vehicleId;
           i.vehicleName = inspection.vehicleName;
+          i.vehiclePlate = inspection.vehiclePlate;
           i.status = inspection.status;
           i.data = inspection.data;
         });
@@ -50,7 +54,9 @@ export const databaseService = {
       return inspections.map(i => ({
         id: i.id,
         userId: i.userId,
+        vehicleId: i.vehicleId,
         vehicleName: i.vehicleName,
+        vehiclePlate: i.vehiclePlate,
         status: i.status as any,
         data: i.data,
         createdAt: new Date(i.createdAt).toISOString(),

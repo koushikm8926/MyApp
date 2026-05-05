@@ -95,7 +95,12 @@ export default function Home() {
   const handleSelectVehicle = async (vehicle: any) => {
     setModalVisible(false);
     if (selectedScreen && user) {
-      const inspectionId = await startInspection(user.id, `${vehicle.make} ${vehicle.model}`);
+      const inspectionId = await startInspection(
+        user.id, 
+        vehicle.id, 
+        `${vehicle.make} ${vehicle.model}`, 
+        vehicle.plate || 'N/A'
+      );
       navigation.navigate(selectedScreen, { 
         vehicleId: vehicle.id, 
         vehicleName: `${vehicle.make} ${vehicle.model}`,
@@ -198,6 +203,9 @@ export default function Home() {
                   </View>
                   <View style={styles.activityInfo}>
                     <Text style={styles.activityTitle}>{item.vehicleName}</Text>
+                    <View style={styles.plateBadgeSmall}>
+                      <Text style={styles.plateBadgeTextSmall}>{item.vehiclePlate}</Text>
+                    </View>
                     <Text style={styles.activityDate}>
                       {new Date(item.createdAt).toLocaleDateString()} • {item.status.toUpperCase()}
                     </Text>
@@ -959,5 +967,21 @@ const styles = StyleSheet.create({
   filterOptionTextSelected: {
     color: '#0787e2',
     fontWeight: '700',
+  },
+  plateBadgeSmall: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+    marginBottom: 4,
+    borderWidth: 0.5,
+    borderColor: '#CBD5E1',
+  },
+  plateBadgeTextSmall: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
   },
 });

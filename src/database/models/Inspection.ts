@@ -6,7 +6,9 @@ export default class Inspection extends Model {
   static table = 'inspections';
 
   @field('user_id') userId!: string;
+  @field('vehicle_id') vehicleId!: string;
   @field('vehicle_name') vehicleName!: string;
+  @field('vehicle_plate') vehiclePlate!: string;
   @field('status') status!: string;
   @field('data') data!: string;
 

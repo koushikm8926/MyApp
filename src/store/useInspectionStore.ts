@@ -7,7 +7,7 @@ interface InspectionState {
   isLoading: boolean;
   
   loadInspections: (userId: string) => Promise<void>;
-  startInspection: (userId: string, vehicleName: string) => Promise<string>;
+  startInspection: (userId: string, vehicleId: string, vehicleName: string, vehiclePlate: string) => Promise<string>;
   saveInspectionData: (id: string, data: any) => Promise<void>;
   addPhoto: (inspectionId: string, uri: string, type: string) => Promise<void>;
 }
@@ -27,12 +27,26 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     }
   },
 
-  startInspection: async (userId, vehicleName) => {
+  startInspection: async (userId, vehicleId, vehicleName, vehiclePlate) => {
+    const state = get();
+    // Check for an existing unfinished inspection for this vehicle
+    const existing = state.inspections.find(i => 
+      i.vehicleId === vehicleId && 
+      (i.status === 'draft' || i.status === 'pending')
+    );
+
+    if (existing) {
+      set({ currentInspection: existing });
+      return existing.id;
+    }
+
     const id = Math.random().toString(36).substr(2, 9);
     const newInspection: InspectionRecord = {
       id,
       userId,
+      vehicleId,
       vehicleName,
+      vehiclePlate,
       status: 'draft',
       data: JSON.stringify({}),
       createdAt: new Date().toISOString(),
