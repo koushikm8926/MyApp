@@ -67,6 +67,25 @@ export const databaseService = {
     }
   },
 
+  async getInspectionById(id: string): Promise<InspectionRecord | null> {
+    try {
+      const i = await database.collections.get<Inspection>('inspections').find(id);
+      return {
+        id: i.id,
+        userId: i.userId,
+        vehicleId: i.vehicleId,
+        vehicleName: i.vehicleName,
+        vehiclePlate: i.vehiclePlate,
+        status: i.status as any,
+        data: i.data,
+        createdAt: new Date(i.createdAt).toISOString(),
+      };
+    } catch (error) {
+      console.error('Database Error: Failed to fetch inspection by ID', error);
+      return null;
+    }
+  },
+
   async updateInspectionData(id: string, data: string) {
     try {
       await database.write(async () => {

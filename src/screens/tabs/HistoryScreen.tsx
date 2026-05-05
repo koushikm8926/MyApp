@@ -63,11 +63,7 @@ export default function History() {
         <TouchableOpacity 
           style={styles.card} 
           onPress={() => {
-            if (item.status === 'uploaded') {
-              navigation.navigate('InspectionDetails', { id: item.id });
-            } else {
-              navigation.navigate('InspectionChecklist', { id: item.id });
-            }
+            navigation.navigate('InspectionDetails', { id: item.id });
           }}
         >
           <View style={styles.cardHeader}>

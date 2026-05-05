@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { databaseService, InspectionRecord, PhotoRecord } from '../../services/databaseService';
-import { CheckCircle2, Clock, MapPin, Calendar, User, ArrowLeft, Car, Shield, Hash, Image as ImageIcon, ChevronRight } from 'lucide-react-native';
+import { CheckCircle2, Clock, MapPin, Calendar, User, ArrowLeft, Car, Shield, Hash, Image as ImageIcon, ChevronRight, Ship, PaintBucket, FileText, Download } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'react-native-linear-gradient';
 
 const { width } = Dimensions.get('window');
-const PHOTO_SIZE = (width - 64) / 2;
+const PHOTO_SIZE = (width - 64) / 3;
 
 export default function InspectionDetails() {
   const route = useRoute<any>();
@@ -21,13 +21,7 @@ export default function InspectionDetails() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const db = await databaseService.getDb();
-        const [results] = await db.executeSql(
-          'SELECT * FROM inspections WHERE id = ?',
-          [id as string]
-        );
-        
-        const inspectionData = results.rows.length > 0 ? results.rows.item(0) : null;
+        const inspectionData = await databaseService.getInspectionById(id);
         const photoData = await databaseService.getPhotos(id as string);
         
         setInspection(inspectionData);
@@ -39,7 +33,7 @@ export default function InspectionDetails() {
       }
     };
 
-    loadData();
+    if (id) loadData();
   }, [id]);
 
   if (loading) {
@@ -61,99 +55,147 @@ export default function InspectionDetails() {
     );
   }
 
+  const data = JSON.parse(inspection.data || '{}');
+  const particulars = data.vesselParticulars || {};
+  const standards = data.cleaningStandards || {};
+
+  const renderInfoRow = (label: string, value: string | boolean | undefined) => (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, !value && styles.placeholderValue]}>
+        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (value || '—')}
+      </Text>
+    </View>
+  );
+
+  const renderSection = (title: string, icon: any, color: string, children: React.ReactNode) => (
+    <View style={styles.reportSection}>
+      <View style={styles.sectionHeader}>
+        <View style={[styles.sectionIconBg, { backgroundColor: color + '15' }]}>
+          {React.createElement(icon, { size: 20, color: color })}
+        </View>
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
+      <View style={styles.sectionContent}>
+        {children}
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <View style={styles.navRow}>
+      {/* Header */}
+      <LinearGradient
+        colors={['#1E293B', '#334155']}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <ArrowLeft size={24} color="#1E293B" />
+            <ArrowLeft size={24} color="#FFF" />
           </TouchableOpacity>
           <View style={styles.headerBadge}>
             <Shield size={12} color="#10B981" />
-            <Text style={styles.badgeText}>VERIFIED REPORT</Text>
+            <Text style={styles.badgeText}>OFFICIAL REPORT</Text>
+          </View>
+          <TouchableOpacity style={styles.downloadBtn}>
+            <Download size={20} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.headerMain}>
+          <Text style={styles.vehicleTitle}>{inspection.vehicleName}</Text>
+          <View style={styles.plateContainer}>
+            <Text style={styles.plateText}>{inspection.vehiclePlate}</Text>
           </View>
         </View>
-        <Text style={styles.title}>Inspection Report</Text>
-      </View>
+      </LinearGradient>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.vehicleHeader}>
-            <View style={styles.iconBox}>
-              <Car size={32} color="#0787e2" />
-            </View>
-            <View style={styles.vehicleMainInfo}>
-              <Text style={styles.vehicleName}>{inspection.vehicleName || 'Untitled Vehicle'}</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusIndicator, { backgroundColor: inspection.status === 'uploaded' ? '#10B981' : '#F59E0B' }]} />
-                <Text style={styles.statusLabel}>{inspection.status.toUpperCase()}</Text>
-              </View>
-            </View>
+        
+        <View style={styles.metaInfo}>
+          <View style={styles.metaCard}>
+            <Calendar size={16} color="#64748B" />
+            <Text style={styles.metaText}>{new Date(inspection.createdAt).toLocaleDateString()}</Text>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.metaGrid}>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>DATE</Text>
-              <View style={styles.metaValueRow}>
-                <Calendar size={14} color="#64748B" />
-                <Text style={styles.metaValue}>{new Date(inspection.createdAt).toLocaleDateString()}</Text>
-              </View>
-            </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaLabel}>INSPECTOR ID</Text>
-              <View style={styles.metaValueRow}>
-                <User size={14} color="#64748B" />
-                <Text style={styles.metaValue}>#{inspection.userId.substring(0, 8)}</Text>
-              </View>
-            </View>
+          <View style={styles.metaCard}>
+            <User size={16} color="#64748B" />
+            <Text style={styles.metaText}>Inspector: {inspection.userId.substring(0, 8)}</Text>
+          </View>
+          <View style={[styles.statusTag, { backgroundColor: inspection.status === 'uploaded' ? '#DCFCE7' : '#FEF3C7' }]}>
+            <Text style={[styles.statusTagText, { color: inspection.status === 'uploaded' ? '#15803D' : '#B45309' }]}>
+              {inspection.status.toUpperCase()}
+            </Text>
           </View>
         </View>
 
+        {renderSection('Vessel Particulars', Ship, '#10B981', (
+          <View style={styles.gridContainer}>
+            {renderInfoRow('Vessel Name', particulars.vesselName)}
+            {renderInfoRow('IMO Number', particulars.imoNumber)}
+            {renderInfoRow('Vessel Type', particulars.vesselType)}
+            {renderInfoRow('Flag', particulars.flag)}
+            {renderInfoRow('Gross Tonnage', particulars.grossTonnage)}
+            {renderInfoRow('DWT', particulars.dwt)}
+            {renderInfoRow('Year Built', particulars.yearBuilt)}
+          </View>
+        ))}
+
+        {renderSection('Cleaning Standards', PaintBucket, '#F59E0B', (
+          <View style={styles.gridContainer}>
+            {renderInfoRow('Required Level', standards.standard)}
+            {renderInfoRow('Chemical Wash', standards.chemicalWash)}
+            {renderInfoRow('Surveyor Req.', standards.surveyorRequired)}
+            <View style={styles.remarksBox}>
+              <Text style={styles.remarksLabel}>Additional Remarks</Text>
+              <Text style={[styles.remarksValue, !standards.remarks && styles.placeholderValue]}>
+                {standards.remarks || 'No additional remarks provided.'}
+              </Text>
+            </View>
+          </View>
+        ))}
+
         {/* Photos Section */}
-        <View style={styles.section}>
+        <View style={styles.reportSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Captured Photos</Text>
-            <View style={styles.photoCountBadge}>
+            <View style={[styles.sectionIconBg, { backgroundColor: '#3B82F615' }]}>
+              <ImageIcon size={20} color="#3B82F6" />
+            </View>
+            <Text style={styles.sectionTitle}>Inspection Photos</Text>
+            <View style={styles.photoCount}>
               <Text style={styles.photoCountText}>{photos.length}</Text>
             </View>
           </View>
-
+          
           {photos.length > 0 ? (
             <View style={styles.photoGrid}>
-              {photos.map((photo, index) => (
-                <View 
-                  key={photo.id}
-                  style={styles.photoContainer}
-                >
-                  <TouchableOpacity style={styles.photoWrapper} activeOpacity={0.9}>
-                    <Image source={{ uri: photo.uri }} style={styles.photo} />
-                    <LinearGradient
-                      colors={['transparent', 'rgba(0,0,0,0.7)']}
-                      style={styles.photoOverlay}
-                    >
-                      <Text style={styles.photoType}>{photo.type.replace('_', ' ')}</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
+              {photos.map((photo) => (
+                <TouchableOpacity key={photo.id} style={styles.photoItem}>
+                  <Image source={{ uri: photo.uri }} style={styles.photo} />
+                  <View style={styles.photoLabel}>
+                    <Text style={styles.photoTypeText}>{photo.type}</Text>
+                  </View>
+                </TouchableOpacity>
               ))}
             </View>
           ) : (
-            <View style={styles.emptyPhotos}>
-              <ImageIcon size={48} color="#CBD5E1" />
-              <Text style={styles.emptyPhotosText}>No photos were captured for this inspection.</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No photos attached to this report.</Text>
             </View>
           )}
         </View>
 
-        {/* Actions */}
-        <TouchableOpacity style={styles.exportButton}>
-          <Text style={styles.exportButtonText}>Export PDF Report</Text>
-          <ChevronRight size={20} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.footerSpace} />
       </ScrollView>
+
+      <TouchableOpacity style={styles.exportFab}>
+        <LinearGradient
+          colors={['#0787e2', '#1E40AF']}
+          style={styles.fabGradient}
+        >
+          <FileText size={20} color="#FFF" style={{ marginRight: 8 }} />
+          <Text style={styles.fabText}>Generate PDF Report</Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -161,163 +203,192 @@ export default function InspectionDetails() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
+    backgroundColor: '#F1F5F9',
   },
   header: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  navRow: {
+  headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#ECFDF5',
-    borderRadius: 8,
+    borderRadius: 20,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: '800',
     color: '#10B981',
-    marginLeft: 6,
-    letterSpacing: 0.5,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1E293B',
-  },
-  scrollContent: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  infoCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 15,
-    elevation: 4,
-  },
-  vehicleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  vehicleMainInfo: {
-    flex: 1,
-  },
-  vehicleName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F1F5F9',
-    marginBottom: 20,
-  },
-  metaGrid: {
-    flexDirection: 'row',
-  },
-  metaItem: {
-    flex: 1,
-  },
-  metaLabel: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#94A3B8',
-    marginBottom: 6,
+    fontWeight: '900',
+    marginLeft: 6,
     letterSpacing: 1,
   },
-  metaValueRow: {
-    flexDirection: 'row',
+  downloadBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  metaValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginLeft: 8,
+  headerMain: {
+    alignItems: 'center',
   },
-  section: {
-    marginBottom: 32,
+  vehicleTitle: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  plateContainer: {
+    backgroundColor: '#FCD34D',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#000',
+  },
+  plateText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 14,
+    letterSpacing: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  metaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  metaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    flex: 1,
+    marginRight: 8,
+  },
+  metaText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  statusTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  statusTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  reportSection: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginBottom: 20,
+  },
+  sectionIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: '#1E293B',
+    flex: 1,
   },
-  photoCountBadge: {
-    backgroundColor: '#E2E8F0',
+  sectionContent: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 16,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  infoRow: {
+    width: '48%',
+    marginBottom: 16,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 15,
+    color: '#1E293B',
+    fontWeight: '700',
+  },
+  placeholderValue: {
+    color: '#CBD5E1',
+    fontWeight: '400',
+    fontStyle: 'italic',
+  },
+  remarksBox: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  remarksLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  remarksValue: {
+    fontSize: 14,
+    color: '#334155',
+    lineHeight: 20,
+  },
+  photoCount: {
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   photoCountText: {
     fontSize: 12,
@@ -329,77 +400,71 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  photoContainer: {
+  photoItem: {
     width: PHOTO_SIZE,
-    marginBottom: 16,
-  },
-  photoWrapper: {
-    width: '100%',
     aspectRatio: 1,
-    borderRadius: 20,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: 12,
   },
   photo: {
     width: '100%',
     height: '100%',
   },
-  photoOverlay: {
+  photoLabel: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 12,
-    height: '40%',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: 4,
   },
-  photoType: {
-    color: '#fff',
-    fontSize: 11,
+  photoTypeText: {
+    color: '#FFF',
+    fontSize: 8,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  emptyPhotos: {
-    padding: 40,
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 24,
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
-  },
-  emptyPhotosText: {
-    marginTop: 16,
-    color: '#94A3B8',
     textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
   },
-  exportButton: {
-    flexDirection: 'row',
+  emptyContainer: {
+    padding: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#1E293B',
-    height: 64,
+  },
+  emptyText: {
+    color: '#94A3B8',
+    fontStyle: 'italic',
+  },
+  footerSpace: {
+    height: 100,
+  },
+  exportFab: {
+    position: 'absolute',
+    bottom: 24,
+    left: 24,
+    right: 24,
+    height: 60,
     borderRadius: 20,
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
+    overflow: 'hidden',
+    shadowColor: '#0787e2',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
   },
-  exportButtonText: {
-    color: '#fff',
+  fabGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabText: {
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '800',
-    marginRight: 8,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     fontSize: 18,
