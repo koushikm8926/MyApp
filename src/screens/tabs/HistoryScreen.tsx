@@ -40,8 +40,26 @@ export default function History() {
     if (user) loadInspections(user.id);
   }, [user]);
 
-  // Group by Vehicle ID and show only the most recent inspection per car
-  const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vehicleId, item])).values());
+  // Group by Vehicle ID and show only the most 'advanced' inspection per car
+  const uniqueInspections = Array.from(
+    inspections
+      .sort((a, b) => {
+        // Prioritize status (uploaded > pending > draft)
+        const statusOrder: Record<string, number> = { uploaded: 0, pending: 1, draft: 2 };
+        if (statusOrder[a.status] !== statusOrder[b.status]) {
+          return statusOrder[a.status] - statusOrder[b.status];
+        }
+        // Then prioritize newer ones
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .reduce((map, item) => {
+        if (!map.has(item.vehicleId)) {
+          map.set(item.vehicleId, item);
+        }
+        return map;
+      }, new Map<string, any>())
+      .values()
+  );
 
   const filteredInspections = uniqueInspections.filter(item => {
     const matchesSearch = item.vehicleName?.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -60,14 +60,18 @@ export default function InspectionDetails() {
   const standards = data.cleaningStandards || {};
   const waterData = data.daysFreshWater || {};
 
-  const renderInfoRow = (label: string, value: string | boolean | undefined) => (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, !value && styles.placeholderValue]}>
-        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (value || '—')}
-      </Text>
-    </View>
-  );
+  const renderInfoRow = (label: string, value: string | boolean | number | undefined) => {
+    const isEmpty = value === undefined || value === null || value === '';
+    
+    return (
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={[styles.infoValue, isEmpty && styles.placeholderValue]}>
+          {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : (value || '—')}
+        </Text>
+      </View>
+    );
+  };
 
   const renderSection = (title: string, icon: any, color: string, children: React.ReactNode) => (
     <View style={styles.reportSection}>
@@ -82,6 +86,8 @@ export default function InspectionDetails() {
       </View>
     </View>
   );
+
+  const hasData = (obj: any) => obj && Object.keys(obj).length > 0 && Object.values(obj).some(v => v !== '' && v !== null && v !== undefined);
 
   return (
     <View style={styles.container}>
@@ -127,37 +133,60 @@ export default function InspectionDetails() {
 
         {renderSection('Vessel Particulars', Ship, '#10B981', (
           <View style={styles.gridContainer}>
-            {renderInfoRow('Vessel Name', particulars.vesselName)}
-            {renderInfoRow('IMO Number', particulars.imoNumber)}
-            {renderInfoRow('Vessel Type', particulars.vesselType)}
-            {renderInfoRow('Flag', particulars.flag)}
-            {renderInfoRow('Gross Tonnage', particulars.grossTonnage)}
-            {renderInfoRow('DWT', particulars.dwt)}
-            {renderInfoRow('Year Built', particulars.yearBuilt)}
+            {hasData(particulars) ? (
+              <>
+                {renderInfoRow('Vessel Name', particulars.vesselName)}
+                {renderInfoRow('IMO Number', particulars.imoNumber)}
+                {renderInfoRow('Vessel Type', particulars.vesselType)}
+                {renderInfoRow('Flag', particulars.flag)}
+                {renderInfoRow('Gross Tonnage', particulars.grossTonnage)}
+                {renderInfoRow('DWT', particulars.dwt)}
+                {renderInfoRow('Year Built', particulars.yearBuilt)}
+              </>
+            ) : (
+              <Text style={styles.pendingText}>No vessel particulars recorded for this inspection.</Text>
+            )}
           </View>
         ))}
 
         {renderSection('Cleaning Standards', PaintBucket, '#F59E0B', (
           <View style={styles.gridContainer}>
-            {renderInfoRow('Required Level', standards.standard)}
-            {renderInfoRow('Chemical Wash', standards.chemicalWash)}
-            {renderInfoRow('Surveyor Req.', standards.surveyorRequired)}
-            <View style={styles.remarksBox}>
-              <Text style={styles.remarksLabel}>Additional Remarks</Text>
-              <Text style={[styles.remarksValue, !standards.remarks && styles.placeholderValue]}>
-                {standards.remarks || 'No additional remarks provided.'}
-              </Text>
-            </View>
+            {hasData(standards) ? (
+              <>
+                {renderInfoRow('Required Level', 
+                  standards.standard === 'hospital' ? 'Hospital Clean' :
+                  standards.standard === 'grain' ? 'Grain Clean' :
+                  standards.standard === 'normal' ? 'Normal Clean' :
+                  standards.standard
+                )}
+                {renderInfoRow('Chemical Wash', standards.chemicalWash)}
+                {renderInfoRow('Surveyor Req.', standards.surveyorRequired)}
+                <View style={styles.remarksBox}>
+                  <Text style={styles.remarksLabel}>Additional Remarks</Text>
+                  <Text style={[styles.remarksValue, (standards.remarks === undefined || standards.remarks === '') && styles.placeholderValue]}>
+                    {standards.remarks || 'No additional remarks provided.'}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <Text style={styles.pendingText}>No cleaning standards selected yet.</Text>
+            )}
           </View>
         ))}
 
         {renderSection('Days & Fresh Water', Droplets, '#3B82F6', (
           <View style={styles.gridContainer}>
-            {renderInfoRow('Total Quantity', waterData.waterQuantity ? `${waterData.waterQuantity} MT` : undefined)}
-            {renderInfoRow('Source', waterData.source)}
-            {renderInfoRow('Days Since Cleaning', waterData.cleaningDays)}
-            {renderInfoRow('Est. Remaining Days', waterData.remainingDays)}
-            {renderInfoRow('Quality Check', waterData.quality)}
+            {hasData(waterData) ? (
+              <>
+                {renderInfoRow('Total Quantity', waterData.waterQuantity ? `${waterData.waterQuantity} MT` : undefined)}
+                {renderInfoRow('Source', waterData.source)}
+                {renderInfoRow('Days Since Cleaning', waterData.cleaningDays)}
+                {renderInfoRow('Est. Remaining Days', waterData.remainingDays)}
+                {renderInfoRow('Quality Check', waterData.quality)}
+              </>
+            ) : (
+              <Text style={styles.pendingText}>No water inventory data recorded yet.</Text>
+            )}
           </View>
         ))}
 
@@ -478,6 +507,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
     marginBottom: 16,
+  },
+  pendingText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    width: '100%',
+    paddingVertical: 10,
   },
   backLink: {
     padding: 12,
