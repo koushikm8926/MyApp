@@ -20,6 +20,8 @@ export default function Home() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFilterVisible, setFilterVisible] = useState(false);
+  const [sortBy, setSortBy] = useState('recent');
 
   const [isAddVehicleVisible, setAddVehicleVisible] = useState(false);
   const [make, setMake] = useState('');
@@ -57,7 +59,16 @@ export default function Home() {
   const filteredVehicles = vehicles.filter(v => 
     `${v.make} ${v.model}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (v.plate && v.plate.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ).sort((a, b) => {
+    if (sortBy === 'makeAsc') {
+      return a.make.localeCompare(b.make);
+    } else if (sortBy === 'yearDesc') {
+      return (parseInt(b.year) || 0) - (parseInt(a.year) || 0);
+    } else if (sortBy === 'yearAsc') {
+      return (parseInt(a.year) || 0) - (parseInt(b.year) || 0);
+    }
+    return 0;
+  });
 
   useEffect(() => {
     if (user) {
@@ -243,7 +254,7 @@ export default function Home() {
                     placeholderTextColor="#94A3B8"
                   />
                 </View>
-                <TouchableOpacity style={styles.modalFilterBtn}>
+                <TouchableOpacity style={styles.modalFilterBtn} onPress={() => setFilterVisible(true)}>
                   <Filter size={18} color="#0787e2" />
                 </TouchableOpacity>
               </View>
@@ -392,6 +403,57 @@ export default function Home() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Filter Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isFilterVisible}
+        onRequestClose={() => setFilterVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom || 24 }]}>
+            <View style={styles.modalIndicator} />
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Sort & Filter</Text>
+              </View>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setFilterVisible(false)}>
+                <X size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.inputLabel}>SORT BY</Text>
+              
+              {[
+                { id: 'recent', label: 'Recently Added' },
+                { id: 'makeAsc', label: 'Make (A-Z)' },
+                { id: 'yearDesc', label: 'Year (Newest First)' },
+                { id: 'yearAsc', label: 'Year (Oldest First)' },
+              ].map((option) => (
+                <TouchableOpacity 
+                  key={option.id}
+                  style={[
+                    styles.filterOption, 
+                    sortBy === option.id && styles.filterOptionSelected
+                  ]}
+                  onPress={() => {
+                    setSortBy(option.id);
+                    setFilterVisible(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    sortBy === option.id && styles.filterOptionTextSelected
+                  ]}>{option.label}</Text>
+                  {sortBy === option.id && <CheckCircle2 size={20} color="#0787e2" />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -867,5 +929,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '800',
+  },
+  filterSection: {
+    paddingTop: 16,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  filterOptionSelected: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#0787e2',
+  },
+  filterOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  filterOptionTextSelected: {
+    color: '#0787e2',
+    fontWeight: '700',
   },
 });
