@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Platform, Image, Modal, FlatList } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Platform, Image, Modal, FlatList, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car, Lock, X, Plus } from 'lucide-react-native';
+import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car, Lock, X, Plus, Search, Filter, Tag, Info, Hash, Calendar } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -19,6 +19,45 @@ export default function Home() {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [isAddVehicleVisible, setAddVehicleVisible] = useState(false);
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [year, setYear] = useState('');
+  const [plate, setPlate] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleAddVehicle = async () => {
+    if (!user || !make || !model) return;
+    
+    setIsSubmitting(true);
+    try {
+      await databaseService.addVehicle({
+        id: Math.random().toString(36).substring(7),
+        userId: user.id,
+        make,
+        model,
+        year,
+        plate
+      });
+      setAddVehicleVisible(false);
+      setMake('');
+      setModel('');
+      setYear('');
+      setPlate('');
+      if (user) loadVehicles(user.id);
+    } catch (err) {
+      console.error('Failed to add vehicle', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredVehicles = vehicles.filter(v => 
+    `${v.make} ${v.model}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (v.plate && v.plate.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   useEffect(() => {
     if (user) {
@@ -177,17 +216,50 @@ export default function Home() {
                 <Text style={styles.modalTitle}>Select Vehicle</Text>
                 <Text style={styles.modalSubtitle}>Which vehicle are you inspecting?</Text>
               </View>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-                <X size={24} color="#64748B" />
-              </TouchableOpacity>
+              <View style={styles.modalHeaderActions}>
+                <TouchableOpacity 
+                  style={styles.headerAddBtn} 
+                  onPress={() => {
+                    setAddVehicleVisible(true);
+                  }}
+                >
+                  <Plus size={20} color="#0787e2" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
+                  <X size={24} color="#64748B" />
+                </TouchableOpacity>
+              </View>
             </View>
+
+            {vehicles.length > 0 && (
+              <View style={styles.modalSearchContainer}>
+                <View style={styles.modalSearchBar}>
+                  <Search size={18} color="#94A3B8" />
+                  <TextInput
+                    style={styles.modalSearchInput}
+                    placeholder="Search vehicles..."
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                <TouchableOpacity style={styles.modalFilterBtn}>
+                  <Filter size={18} color="#0787e2" />
+                </TouchableOpacity>
+              </View>
+            )}
 
             {vehicles.length > 0 ? (
               <FlatList
-                data={vehicles}
+                data={filteredVehicles}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 style={styles.vehicleList}
+                ListEmptyComponent={
+                  <View style={styles.emptySearch}>
+                    <Text style={styles.emptySearchText}>No vehicles match your search.</Text>
+                  </View>
+                }
                 renderItem={({ item }) => (
                   <TouchableOpacity 
                     style={styles.vehicleItem}
@@ -211,8 +283,7 @@ export default function Home() {
                 <TouchableOpacity 
                   style={styles.addVehicleBtn}
                   onPress={() => {
-                    setModalVisible(false);
-                    navigation.navigate('Vehicles');
+                    setAddVehicleVisible(true);
                   }}
                 >
                   <Plus size={20} color="#fff" style={{ marginRight: 8 }} />
@@ -222,6 +293,105 @@ export default function Home() {
             )}
           </View>
         </View>
+      </Modal>
+
+      {/* Add Vehicle Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isAddVehicleVisible}
+        onRequestClose={() => setAddVehicleVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+            <View style={styles.modalIndicator} />
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Add New Vehicle</Text>
+                <Text style={styles.modalSubtitle}>Enter details to register vehicle</Text>
+              </View>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setAddVehicleVisible(false)}>
+                <X size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
+              <View style={styles.form}>
+                <Text style={styles.inputLabel}>BASIC INFO</Text>
+                <View style={styles.inputGroup}>
+                  <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Make (e.g. Toyota)"
+                    value={make}
+                    onChangeText={setMake}
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Car size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Model (e.g. Camry)"
+                    value={model}
+                    onChangeText={setModel}
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+
+                <View style={styles.row}>
+                  <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+                    <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Year"
+                      value={year}
+                      onChangeText={setYear}
+                      keyboardType="numeric"
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                    <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Plate Number"
+                      value={plate}
+                      onChangeText={setPlate}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.infoBox}>
+                  <Info size={16} color="#0787e2" />
+                  <Text style={styles.infoText}>Adding a vehicle allows you to track its entire inspection history in one place.</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={[styles.submitButton, (!make || !model) && styles.submitButtonDisabled]}
+                  onPress={handleAddVehicle}
+                  disabled={!make || !model || isSubmitting}
+                >
+                  <LinearGradient
+                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#1E293B', '#334155']}
+                    style={styles.submitGradient}
+                  >
+                    {isSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.submitButtonText}>Register Vehicle</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -480,7 +650,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
+    marginBottom: 20,
+  },
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   modalTitle: {
     fontSize: 24,
@@ -499,6 +682,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalSearchBar: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginRight: 10,
+  },
+  modalSearchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  modalFilterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptySearch: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptySearchText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
   vehicleList: {
     maxHeight: 400,
@@ -557,5 +779,93 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  modalIndicator: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 24,
+  },
+  formScroll: {
+    paddingHorizontal: 8,
+  },
+  form: {
+    width: '100%',
+    paddingBottom: 40,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    marginBottom: 12,
+    letterSpacing: 1,
+  },
+  inputGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+    height: 64,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  row: {
+    flexDirection: 'row',
+  },
+  inputIcon: {
+    marginRight: 16,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#EEF2FF',
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 8,
+    marginBottom: 32,
+    alignItems: 'center',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#0787e2',
+    fontWeight: '600',
+    marginLeft: 12,
+    lineHeight: 18,
+  },
+  submitButton: {
+    height: 64,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  submitGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '800',
   },
 });
