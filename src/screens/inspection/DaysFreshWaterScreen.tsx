@@ -1,22 +1,60 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, CheckCircle2, Droplets, Calendar, Waves, Info } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, Droplets, Calendar, Waves, Info, Check } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { useInspectionStore } from '../../store/useInspectionStore';
 
 export default function DaysFreshWaterScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { currentInspection, saveInspectionData } = useInspectionStore();
   
-  const [waterQuantity, setWaterQuantity] = useState('');
-  const [cleaningDays, setCleaningDays] = useState('');
-  const [remainingDays, setRemainingDays] = useState('');
-  const [source, setSource] = useState('Barge');
-  const [quality, setQuality] = useState('Satisfactory');
+  const [formData, setFormData] = useState({
+    waterQuantity: '',
+    cleaningDays: '',
+    remainingDays: '',
+    source: 'Barge',
+    quality: 'Satisfactory',
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const sources = ['Barge', 'Shore', 'Distilled', 'Other'];
   const qualities = ['Satisfactory', 'Needs Treatment', 'Poor'];
+
+  useEffect(() => {
+    if (currentInspection) {
+      const data = JSON.parse(currentInspection.data || '{}');
+      if (data.daysFreshWater) {
+        setFormData({ ...formData, ...data.daysFreshWater });
+      }
+    }
+  }, [currentInspection]);
+
+  const handleSave = async () => {
+    if (!currentInspection) return;
+    
+    setIsSaving(true);
+    try {
+      await saveInspectionData(currentInspection.id, {
+        daysFreshWater: formData
+      });
+      
+      setIsSaving(false);
+      setShowSuccess(true);
+      
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.goBack();
+      }, 1500);
+    } catch (err) {
+      setIsSaving(false);
+      console.error('Save failed', err);
+    }
+  };
 
   return (
     <KeyboardAvoidingView 
@@ -36,6 +74,18 @@ export default function DaysFreshWaterScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
+      {showSuccess && (
+        <View style={[styles.successToast, { top: insets.top + 80 }]}>
+          <LinearGradient
+            colors={['#3B82F6', '#1E40AF']}
+            style={styles.toastGradient}
+          >
+            <Check size={20} color="#FFFFFF" />
+            <Text style={styles.successText}>Water Data Saved Successfully!</Text>
+          </LinearGradient>
+        </View>
+      )}
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -49,8 +99,8 @@ export default function DaysFreshWaterScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Enter quantity in Metric Tons"
-                value={waterQuantity}
-                onChangeText={setWaterQuantity}
+                value={formData.waterQuantity}
+                onChangeText={(val) => setFormData({ ...formData, waterQuantity: val })}
                 keyboardType="numeric"
                 placeholderTextColor="#94A3B8"
               />
@@ -63,10 +113,10 @@ export default function DaysFreshWaterScreen() {
               {sources.map((item) => (
                 <TouchableOpacity 
                   key={item} 
-                  style={[styles.pickerItem, source === item && styles.pickerItemActive]}
-                  onPress={() => setSource(item)}
+                  style={[styles.pickerItem, formData.source === item && styles.pickerItemActive]}
+                  onPress={() => setFormData({ ...formData, source: item })}
                 >
-                  <Text style={[styles.pickerText, source === item && styles.pickerTextActive]}>{item}</Text>
+                  <Text style={[styles.pickerText, formData.source === item && styles.pickerTextActive]}>{item}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -85,8 +135,8 @@ export default function DaysFreshWaterScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Enter number of days"
-                value={cleaningDays}
-                onChangeText={setCleaningDays}
+                value={formData.cleaningDays}
+                onChangeText={(val) => setFormData({ ...formData, cleaningDays: val })}
                 keyboardType="numeric"
                 placeholderTextColor="#94A3B8"
               />
@@ -99,8 +149,8 @@ export default function DaysFreshWaterScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="Based on current consumption"
-                value={remainingDays}
-                onChangeText={setRemainingDays}
+                value={formData.remainingDays}
+                onChangeText={(val) => setFormData({ ...formData, remainingDays: val })}
                 keyboardType="numeric"
                 placeholderTextColor="#94A3B8"
               />
@@ -120,10 +170,10 @@ export default function DaysFreshWaterScreen() {
               {qualities.map((item) => (
                 <TouchableOpacity 
                   key={item} 
-                  style={[styles.qualityItem, quality === item && styles.qualityItemActive]}
-                  onPress={() => setQuality(item)}
+                  style={[styles.qualityItem, formData.quality === item && styles.qualityItemActive]}
+                  onPress={() => setFormData({ ...formData, quality: item })}
                 >
-                  <Text style={[styles.qualityText, quality === item && styles.qualityTextActive]}>{item}</Text>
+                  <Text style={[styles.qualityText, formData.quality === item && styles.qualityTextActive]}>{item}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -131,8 +181,9 @@ export default function DaysFreshWaterScreen() {
         </View>
 
         <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={() => navigation.goBack()}
+          style={[styles.saveButton, isSaving && { opacity: 0.8 }]} 
+          onPress={handleSave}
+          disabled={isSaving || showSuccess}
         >
           <LinearGradient
             colors={['#3B82F6', '#2563EB']}
@@ -140,8 +191,19 @@ export default function DaysFreshWaterScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.saveButtonGradient}
           >
-            <CheckCircle2 size={20} color="#FFF" />
-            <Text style={styles.saveButtonText}>Save Details</Text>
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : showSuccess ? (
+              <>
+                <Check size={20} color="#FFFFFF" style={{ marginRight: 10 }} />
+                <Text style={styles.saveButtonText}>Saved!</Text>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={20} color="#FFF" style={{ marginRight: 10 }} />
+                <Text style={styles.saveButtonText}>Save Details</Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
@@ -297,6 +359,30 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 17,
     fontWeight: '700',
+  },
+  successToast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 100,
+    alignItems: 'center',
+  },
+  toastGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  successText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
     marginLeft: 10,
+    fontSize: 15,
   },
 });

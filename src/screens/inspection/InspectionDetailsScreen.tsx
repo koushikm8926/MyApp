@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, Image, TouchableOpacity, ActivityIndicator, Platform, Dimensions } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { databaseService, InspectionRecord, PhotoRecord } from '../../services/databaseService';
-import { CheckCircle2, Clock, MapPin, Calendar, User, ArrowLeft, Car, Shield, Hash, Image as ImageIcon, ChevronRight, Ship, PaintBucket, FileText, Download } from 'lucide-react-native';
+import { CheckCircle2, Clock, MapPin, Calendar, User, ArrowLeft, Car, Shield, Hash, Image as ImageIcon, ChevronRight, Ship, PaintBucket, FileText, Download, Droplets } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'react-native-linear-gradient';
 
@@ -58,6 +58,7 @@ export default function InspectionDetails() {
   const data = JSON.parse(inspection.data || '{}');
   const particulars = data.vesselParticulars || {};
   const standards = data.cleaningStandards || {};
+  const waterData = data.daysFreshWater || {};
 
   const renderInfoRow = (label: string, value: string | boolean | undefined) => (
     <View style={styles.infoRow}>
@@ -147,6 +148,16 @@ export default function InspectionDetails() {
                 {standards.remarks || 'No additional remarks provided.'}
               </Text>
             </View>
+          </View>
+        ))}
+
+        {renderSection('Days & Fresh Water', Droplets, '#3B82F6', (
+          <View style={styles.gridContainer}>
+            {renderInfoRow('Total Quantity', waterData.waterQuantity ? `${waterData.waterQuantity} MT` : undefined)}
+            {renderInfoRow('Source', waterData.source)}
+            {renderInfoRow('Days Since Cleaning', waterData.cleaningDays)}
+            {renderInfoRow('Est. Remaining Days', waterData.remainingDays)}
+            {renderInfoRow('Quality Check', waterData.quality)}
           </View>
         ))}
 

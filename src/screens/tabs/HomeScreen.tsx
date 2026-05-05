@@ -109,9 +109,10 @@ export default function Home() {
     }
   };
 
-  const recentInspections = inspections.slice(0, 3);
-  const totalInspections = inspections.length;
-  const pendingInspections = inspections.filter(i => i.status === 'pending' || i.status === 'draft').length;
+  const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vehicleId, item])).values());
+  const recentInspections = uniqueInspections.slice(0, 3);
+  const totalInspections = uniqueInspections.length;
+  const pendingInspections = uniqueInspections.filter(i => i.status === 'pending' || i.status === 'draft').length;
 
 
   return (
