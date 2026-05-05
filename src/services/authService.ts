@@ -18,15 +18,19 @@ export const authService = {
       throw new Error('Email and OTP are required');
     }
     
-    // Accept "1234" as a mock valid OTP for testing
-    if (otp !== '1234') {
-      throw new Error('Invalid OTP. Use 1234 for testing.');
+    // Only allow koushik@gmail.com with OTP 8670
+    if (email !== 'koushik@gmail.com') {
+      throw new Error('Unauthorized account.');
+    }
+    
+    if (otp !== '8670') {
+      throw new Error('Invalid OTP. Use 8670 for your account.');
     }
 
     const mockUser = {
-      id: '12345',
-      email: email,
-      name: 'Robert C. Smith', // Professional name
+      id: 'koushik_8670',
+      email: 'koushik@gmail.com',
+      name: 'Koushik',
     };
     const mockToken = 'mock-jwt-token-xyz';
 

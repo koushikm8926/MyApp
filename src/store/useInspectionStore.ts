@@ -47,10 +47,23 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
   },
 
   saveInspectionData: async (id, data) => {
-    await databaseService.updateInspectionStatus(id, 'pending');
-    // In a real app, we'd update the 'data' field too
+    const state = get();
+    const inspection = state.inspections.find(i => i.id === id);
+    if (!inspection) return;
+
+    const existingData = JSON.parse(inspection.data || '{}');
+    const newData = { ...existingData, ...data };
+    const dataString = JSON.stringify(newData);
+
+    await databaseService.updateInspectionData(id, dataString);
+    
     set((state) => ({
-      inspections: state.inspections.map(i => i.id === id ? { ...i, status: 'pending' } : i)
+      inspections: state.inspections.map(i => 
+        i.id === id ? { ...i, data: dataString, status: 'pending' } : i
+      ),
+      currentInspection: state.currentInspection?.id === id 
+        ? { ...state.currentInspection, data: dataString, status: 'pending' } 
+        : state.currentInspection
     }));
   },
 

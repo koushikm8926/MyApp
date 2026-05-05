@@ -7,8 +7,8 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { authService } from '../../services/authService';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('koushik@gmail.com');
+  const [otp, setOtp] = useState('8670');
   const [showOtp, setShowOtp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,7 +30,7 @@ export default function Login() {
     try {
       await authService.sendOtp(email);
       setShowOtp(true);
-      setError('OTP sent! Use 1234 for testing.');
+      setError('OTP sent! Use 8670 for your account.');
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP');
     } finally {

@@ -2,8 +2,9 @@ import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, ChevronRight, FileText, Ship, PaintBucket, Navigation, Droplets } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, FileText, Ship, PaintBucket, Navigation, Droplets, CheckCircle2 } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { useInspectionStore } from '../../store/useInspectionStore';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +17,7 @@ const OPTIONS = [
     colors: ['#0787e2', '#45a6f0'],
     iconColor: '#FFF',
     screen: 'PreInspectionDoc',
+    dataKey: 'preInspectionDoc',
   },
   {
     id: 'vessel-particular',
@@ -25,6 +27,7 @@ const OPTIONS = [
     colors: ['#10B981', '#34D399'],
     iconColor: '#FFF',
     screen: 'VesselParticular',
+    dataKey: 'vesselParticulars',
   },
   {
     id: 'cleaning-standards',
@@ -34,6 +37,7 @@ const OPTIONS = [
     colors: ['#F59E0B', '#FBBF24'],
     iconColor: '#FFF',
     screen: 'CleaningStandards',
+    dataKey: 'cleaningStandards',
   },
   {
     id: 'walk-hold',
@@ -43,6 +47,7 @@ const OPTIONS = [
     colors: ['#8B5CF6', '#A78BFA'],
     iconColor: '#FFF',
     screen: 'WalkTheHold',
+    dataKey: 'walkTheHold',
   },
   {
     id: 'days-fresh-water',
@@ -52,12 +57,20 @@ const OPTIONS = [
     colors: ['#3B82F6', '#60A5FA'],
     iconColor: '#FFF',
     screen: 'DaysFreshWater',
+    dataKey: 'daysFreshWater',
   },
 ];
 
 export default function PreHoldCleaningScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { currentInspection } = useInspectionStore();
+
+  const inspectionData = currentInspection ? JSON.parse(currentInspection.data || '{}') : {};
+
+  const isStepCompleted = (dataKey: string) => {
+    return !!inspectionData[dataKey];
+  };
 
   return (
     <View style={styles.container}>
@@ -85,6 +98,8 @@ export default function PreHoldCleaningScreen() {
           {OPTIONS.map((item, index) => {
             const Icon = item.icon;
             const isLast = index === OPTIONS.length - 1;
+            const completed = isStepCompleted(item.dataKey);
+
             return (
               <View 
                 key={item.id}
@@ -92,27 +107,30 @@ export default function PreHoldCleaningScreen() {
               >
                 <View style={styles.timelineConnector}>
                   <LinearGradient
-                    colors={item.colors as [string, string]}
+                    colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.timelineIconBg}
                   >
-                    <Icon size={20} color={item.iconColor} />
+                    {completed ? <CheckCircle2 size={22} color="#FFF" /> : <Icon size={20} color={item.iconColor} />}
                   </LinearGradient>
-                  {!isLast && <View style={styles.timelineLine} />}
+                  {!isLast && <View style={[styles.timelineLine, completed && { backgroundColor: '#10B981' }]} />}
                 </View>
                 
                 <TouchableOpacity 
-                  style={styles.timelineCard} 
+                  style={[styles.timelineCard, completed && styles.completedCard]} 
                   activeOpacity={item.screen ? 0.7 : 1}
                   onPress={() => item.screen ? navigation.navigate(item.screen as never) : null}
                 >
                   <View style={styles.cardContent}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
+                    <View style={styles.cardTitleRow}>
+                      <Text style={[styles.cardTitle, completed && styles.completedTitle]}>{item.title}</Text>
+                      {completed && <View style={styles.statusBadge}><Text style={styles.statusBadgeText}>COMPLETED</Text></View>}
+                    </View>
                     <Text style={styles.cardDescription}>{item.description}</Text>
                   </View>
                   <View style={styles.chevronContainer}>
-                    <ChevronRight size={18} color="#94A3B8" />
+                    <ChevronRight size={18} color={completed ? '#10B981' : '#94A3B8'} />
                   </View>
                 </TouchableOpacity>
               </View>

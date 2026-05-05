@@ -12,7 +12,7 @@ const { width } = Dimensions.get('window');
 
 export default function Home() {
   const user = useAuthStore((state) => state.user);
-  const { inspections, isLoading, loadInspections } = useInspectionStore();
+  const { inspections, isLoading, loadInspections, startInspection } = useInspectionStore();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -92,12 +92,14 @@ export default function Home() {
     setModalVisible(true);
   };
 
-  const handleSelectVehicle = (vehicle: any) => {
+  const handleSelectVehicle = async (vehicle: any) => {
     setModalVisible(false);
-    if (selectedScreen) {
+    if (selectedScreen && user) {
+      const inspectionId = await startInspection(user.id, `${vehicle.make} ${vehicle.model}`);
       navigation.navigate(selectedScreen, { 
         vehicleId: vehicle.id, 
-        vehicleName: `${vehicle.make} ${vehicle.model}` 
+        vehicleName: `${vehicle.make} ${vehicle.model}`,
+        inspectionId: inspectionId
       });
     }
   };

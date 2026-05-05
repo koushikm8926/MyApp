@@ -61,6 +61,21 @@ export const databaseService = {
     }
   },
 
+  async updateInspectionData(id: string, data: string) {
+    try {
+      await database.write(async () => {
+        const inspection = await database.collections.get<Inspection>('inspections').find(id);
+        await inspection.update((i: any) => {
+          i.data = data;
+          i.status = 'pending';
+        });
+      });
+    } catch (error) {
+      console.error('Database Error: Failed to update inspection data', error);
+      throw error;
+    }
+  },
+
   async updateInspectionStatus(id: string, status: string) {
     try {
       await database.write(async () => {

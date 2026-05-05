@@ -1,13 +1,70 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Save, Ship } from 'lucide-react-native';
+import { ArrowLeft, Save, Ship, ChevronDown, Check, X } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { useInspectionStore } from '../../store/useInspectionStore';
+
+const VESSEL_TYPES = [
+  'Bulk Carrier',
+  'Container Ship',
+  'Tanker',
+  'LNG Carrier',
+  'RO-RO',
+  'General Cargo',
+  'Passenger Ship',
+  'Other'
+];
+
+const YEARS = Array.from({ length: 77 }, (_, i) => (2026 - i).toString());
+
+interface PickerProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (value: string) => void;
+  options: string[];
+  title: string;
+}
+
+const CustomPicker = ({ visible, onClose, onSelect, options, title }: PickerProps) => {
+  const insets = useSafeAreaInsets();
+  
+  return (
+    <Modal visible={visible} animationType="slide" transparent={true}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <X size={24} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={options}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.optionItem}
+                onPress={() => {
+                  onSelect(item);
+                  onClose();
+                }}
+              >
+                <Text style={styles.optionText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 export default function VesselParticularScreen() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { currentInspection, saveInspectionData } = useInspectionStore();
 
   const [formData, setFormData] = useState({
     vesselName: '',
@@ -19,10 +76,91 @@ export default function VesselParticularScreen() {
     flag: '',
   });
 
-  const handleSave = () => {
-    // Save logic would go here
-    navigation.goBack();
+  const [isSaving, setIsSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const [pickerConfig, setPickerConfig] = useState<{
+    visible: boolean;
+    options: string[];
+    title: string;
+    field: keyof typeof formData;
+  }>({
+    visible: false,
+    options: [],
+    title: '',
+    field: 'vesselType'
+  });
+
+  useEffect(() => {
+    if (currentInspection) {
+      const data = JSON.parse(currentInspection.data || '{}');
+      if (data.vesselParticulars) {
+        setFormData({ ...formData, ...data.vesselParticulars });
+      }
+    }
+  }, [currentInspection]);
+
+  const handleSave = async () => {
+    if (!currentInspection) return;
+    
+    setIsSaving(true);
+    try {
+      await saveInspectionData(currentInspection.id, {
+        vesselParticulars: formData
+      });
+      
+      setIsSaving(false);
+      setShowSuccess(true);
+      
+      // Delay navigation back so they can see the success state
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.goBack();
+      }, 1500);
+    } catch (err) {
+      setIsSaving(false);
+      console.error('Save failed', err);
+    }
   };
+
+  const openPicker = (field: keyof typeof formData, options: string[], title: string) => {
+    setPickerConfig({
+      visible: true,
+      options,
+      title,
+      field
+    });
+  };
+
+  const renderInput = (label: string, field: keyof typeof formData, placeholder: string, keyboardType: any = 'default') => (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={placeholder}
+        placeholderTextColor="#94A3B8"
+        value={formData[field]}
+        onChangeText={(text) => setFormData({ ...formData, [field]: text })}
+        keyboardType={keyboardType}
+      />
+    </View>
+  );
+
+  const renderDropdown = (label: string, field: keyof typeof formData, options: string[], title: string) => (
+    <View style={styles.inputGroup}>
+      <Text style={styles.label}>{label}</Text>
+      <TouchableOpacity 
+        style={styles.dropdown} 
+        onPress={() => openPicker(field, options, title)}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.dropdownText, !formData[field] && { color: '#94A3B8' }]}>
+          {formData[field] || `Select ${label}`}
+        </Text>
+        <ChevronDown size={20} color="#64748B" />
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <KeyboardAvoidingView 
@@ -42,6 +180,18 @@ export default function VesselParticularScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
+      {showSuccess && (
+        <View style={[styles.successToast, { top: insets.top + 80 }]}>
+          <LinearGradient
+            colors={['#10B981', '#059669']}
+            style={styles.toastGradient}
+          >
+            <Check size={20} color="#FFFFFF" />
+            <Text style={styles.successText}>Details Saved Successfully!</Text>
+          </LinearGradient>
+        </View>
+      )}
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.iconHeader}>
           <View style={styles.iconCircle}>
@@ -52,99 +202,61 @@ export default function VesselParticularScreen() {
         </View>
 
         <View style={styles.formContainer}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Vessel Name</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. MV Pacific Ocean"
-              placeholderTextColor="#94A3B8"
-              value={formData.vesselName}
-              onChangeText={(text) => setFormData({ ...formData, vesselName: text })}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>IMO Number</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 9123456"
-              placeholderTextColor="#94A3B8"
-              keyboardType="numeric"
-              value={formData.imoNumber}
-              onChangeText={(text) => setFormData({ ...formData, imoNumber: text })}
-            />
-          </View>
-
+          {renderInput('Vessel Name', 'vesselName', 'e.g. MV Pacific Ocean')}
+          {renderInput('IMO Number', 'imoNumber', 'e.g. 9123456', 'numeric')}
+          
           <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>Vessel Type</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Bulk Carrier"
-                placeholderTextColor="#94A3B8"
-                value={formData.vesselType}
-                onChangeText={(text) => setFormData({ ...formData, vesselType: text })}
-              />
+            <View style={{ flex: 1, marginRight: 8 }}>
+              {renderDropdown('Vessel Type', 'vesselType', VESSEL_TYPES, 'Select Vessel Type')}
             </View>
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>Flag</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Panama"
-                placeholderTextColor="#94A3B8"
-                value={formData.flag}
-                onChangeText={(text) => setFormData({ ...formData, flag: text })}
-              />
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              {renderInput('Flag', 'flag', 'e.g. Panama')}
             </View>
           </View>
 
           <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>Gross Tonnage</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="GT"
-                placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                value={formData.grossTonnage}
-                onChangeText={(text) => setFormData({ ...formData, grossTonnage: text })}
-              />
+            <View style={{ flex: 1, marginRight: 8 }}>
+              {renderInput('Gross Tonnage', 'grossTonnage', 'GT', 'numeric')}
             </View>
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>DWT</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="MT"
-                placeholderTextColor="#94A3B8"
-                keyboardType="numeric"
-                value={formData.dwt}
-                onChangeText={(text) => setFormData({ ...formData, dwt: text })}
-              />
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              {renderInput('DWT', 'dwt', 'MT', 'numeric')}
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Year Built</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY"
-              placeholderTextColor="#94A3B8"
-              keyboardType="numeric"
-              maxLength={4}
-              value={formData.yearBuilt}
-              onChangeText={(text) => setFormData({ ...formData, yearBuilt: text })}
-            />
-          </View>
+          {renderDropdown('Year Built', 'yearBuilt', YEARS, 'Select Year Built')}
         </View>
 
       </ScrollView>
       
       <View style={[styles.footer, { paddingBottom: insets.bottom || 24 }]}>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Save size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-          <Text style={styles.saveButtonText}>Save Details</Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, isSaving && { opacity: 0.8 }]} 
+          onPress={handleSave}
+          disabled={isSaving || showSuccess}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : showSuccess ? (
+            <>
+              <Check size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.saveButtonText}>Saved!</Text>
+            </>
+          ) : (
+            <>
+              <Save size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.saveButtonText}>Save Details</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
+
+      <CustomPicker
+        visible={pickerConfig.visible}
+        onClose={() => setPickerConfig({ ...pickerConfig, visible: false })}
+        options={pickerConfig.options}
+        title={pickerConfig.title}
+        onSelect={(val) => setFormData({ ...formData, [pickerConfig.field]: val })}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -230,11 +342,22 @@ const styles = StyleSheet.create({
     height: 56,
     fontSize: 16,
     color: '#1E293B',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
+  },
+  dropdown: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '500',
   },
   footer: {
     backgroundColor: '#FFFFFF',
@@ -260,5 +383,64 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: '70%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  optionItem: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+  successToast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    zIndex: 100,
+    alignItems: 'center',
+  },
+  toastGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  successText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    marginLeft: 10,
+    fontSize: 15,
   },
 });
