@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { ArrowLeft, Camera, CheckCircle2, Plus, Wand2, Save } from 'lucide-react-native';
+import { ArrowLeft, Camera, CheckCircle2, Plus, Wand2, Save, FileText, AlertCircle } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import CustomCameraModal from '../../components/CustomCameraModal';
 import { useZoneProgressStore } from '../../store/useZoneProgressStore';
@@ -13,8 +13,7 @@ import {
   useHoldInspectionDraftStore,
 } from '../../store/useHoldInspectionDraftStore';
 
-// Mock attribute options
-const ATTRIBUTE_TYPES = ['Condition', 'Defect', 'Cleanliness', 'Structural', 'Other'];
+const { width } = Dimensions.get('window');
 
 export default function SublocationScreen() {
   const navigation = useNavigation<any>();
@@ -36,7 +35,6 @@ export default function SublocationScreen() {
   );
 
   const upsertSublocationDraft = useHoldInspectionDraftStore((s) => s.upsertSublocationDraft);
-
   const markSublocationComplete = useZoneProgressStore((s) => s.markSublocationComplete);
 
   const [attributes, setAttributes] = useState(() => defaultSublocationAttributes());
@@ -68,9 +66,7 @@ export default function SublocationScreen() {
       if (!draftKey) {
         resetDefaults();
         draftHydrated.current = true;
-        return () => {
-          draftHydrated.current = false;
-        };
+        return;
       }
 
       const stored =
@@ -83,10 +79,6 @@ export default function SublocationScreen() {
       }
 
       draftHydrated.current = true;
-
-      return () => {
-        draftHydrated.current = false;
-      };
     }, [draftKey])
   );
 
@@ -122,7 +114,7 @@ export default function SublocationScreen() {
   };
 
   const handleGenerateAI = () => {
-    setComment("The area appears to be in fair condition. Minor surface rust observed but structurally sound. Further cleaning required in corners.");
+    setComment("Observation: Area is well-maintained with negligible rust. Surface cleanliness meets standard requirements. Structural integrity confirmed via visual inspection.");
   };
 
   const handleComplete = () => {
@@ -139,7 +131,7 @@ export default function SublocationScreen() {
     >
       {/* Header */}
       <LinearGradient
-        colors={['#10B981', '#10B981', '#34D399']}
+        colors={['#4F46E5', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
@@ -157,8 +149,11 @@ export default function SublocationScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Attributes & Evidence</Text>
-          <Text style={styles.sectionSubtitle}>Add details and capture photos for this location.</Text>
+          <View>
+            <Text style={styles.sectionTitle}>Attribute Evidence</Text>
+            <Text style={styles.sectionSubtitle}>Define conditions and capture proof</Text>
+          </View>
+          <AlertCircle size={20} color="#6366F1" />
         </View>
 
         <View style={styles.attributesContainer}>
@@ -168,15 +163,16 @@ export default function SublocationScreen() {
               style={styles.attributeRow}
             >
               <View style={styles.attributeInputContainer}>
-                <Text style={styles.attributeLabel}>Attribute {index + 1}</Text>
+                <View style={styles.attributeLabelRow}>
+                  <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
+                </View>
                 <View style={styles.inputWithSelect}>
-                  {/* Mock Dropdown Trigger */}
                   <View style={styles.dropdownTrigger}>
-                    <Text style={styles.dropdownText}>{attr.type}</Text>
+                    <Text style={styles.dropdownText}>{attr.type.toUpperCase()}</Text>
                   </View>
                   <TextInput 
                     style={styles.textInput}
-                    placeholder="Describe condition..."
+                    placeholder="Enter condition..."
                     placeholderTextColor="#94A3B8"
                     value={attr.value}
                     onChangeText={(val) => {
@@ -201,34 +197,35 @@ export default function SublocationScreen() {
                     </View>
                   </View>
                 ) : (
-                  <Camera size={24} color="#10B981" />
+                  <Camera size={22} color="#6366F1" />
                 )}
               </TouchableOpacity>
             </View>
           ))}
           
-          <View>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddAttribute} activeOpacity={0.7}>
-              <Plus size={20} color="#3B82F6" />
-              <Text style={styles.addButtonText}>Add Attribute</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddAttribute} activeOpacity={0.7}>
+            <Plus size={20} color="#4F46E5" />
+            <Text style={styles.addButtonText}>ADD NEW PROPERTY</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.commentContainer}>
           <View style={styles.commentHeader}>
-            <Text style={styles.sectionTitle}>Observations</Text>
+            <View style={styles.commentTitleRow}>
+              <FileText size={18} color="#1E293B" style={{marginRight: 8}} />
+              <Text style={styles.sectionTitle}>Detailed Observations</Text>
+            </View>
             <TouchableOpacity style={styles.aiButton} onPress={handleGenerateAI} activeOpacity={0.8}>
-              <Wand2 size={16} color="#8B5CF6" />
-              <Text style={styles.aiButtonText}>Auto-Generate</Text>
+              <Wand2 size={14} color="#4F46E5" />
+              <Text style={styles.aiButtonText}>AI Smart Fill</Text>
             </TouchableOpacity>
           </View>
           
           <TextInput
             style={styles.textArea}
-            placeholder="Add comments or use AI to generate..."
+            placeholder="Type your observations here or use AI Smart Fill..."
             placeholderTextColor="#94A3B8"
             multiline
             numberOfLines={5}
@@ -243,12 +240,12 @@ export default function SublocationScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom || 24 }]}>
         <TouchableOpacity style={styles.draftButton} activeOpacity={0.8} onPress={() => navigation.goBack()}>
           <Save size={20} color="#64748B" />
-          <Text style={styles.draftButtonText}>Save Draft</Text>
+          <Text style={styles.draftButtonText}>Draft</Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.completeButton} onPress={handleComplete} activeOpacity={0.8}>
           <CheckCircle2 size={20} color="#FFFFFF" />
-          <Text style={styles.completeButtonText}>Mark Complete</Text>
+          <Text style={styles.completeButtonText}>Validate & Mark Complete</Text>
         </TouchableOpacity>
       </View>
 
@@ -265,7 +262,7 @@ export default function SublocationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
   },
   header: {
     flexDirection: 'row',
@@ -275,13 +272,18 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   headerTextWrap: {
@@ -289,35 +291,42 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   headerSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
+    fontWeight: '700',
     marginTop: 2,
+    textTransform: 'uppercase',
   },
   scrollContent: {
     paddingBottom: 40,
   },
   sectionHeader: {
-    paddingHorizontal: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
     paddingTop: 32,
     paddingBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#1E293B',
-    marginBottom: 4,
+    letterSpacing: -0.5,
   },
   sectionSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748B',
+    fontWeight: '500',
+    marginTop: 2,
   },
   attributesContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   attributeRow: {
     flexDirection: 'row',
@@ -328,20 +337,25 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  attributeLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
+  attributeLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 8,
-    marginLeft: 4,
+    paddingHorizontal: 4,
+  },
+  attributeLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#6366F1',
+    letterSpacing: 1,
   },
   inputWithSelect: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 16,
-    height: 56,
+    borderRadius: 18,
+    height: 60,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -351,80 +365,87 @@ const styles = StyleSheet.create({
   },
   dropdownTrigger: {
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     backgroundColor: '#F8FAFC',
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
+    minWidth: 80,
   },
   dropdownText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#475569',
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#64748B',
+    textAlign: 'center',
   },
   textInput: {
     flex: 1,
     paddingHorizontal: 16,
     fontSize: 15,
+    fontWeight: '600',
     color: '#1E293B',
   },
   cameraButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#ECFDF5',
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: '#E0E7FF',
   },
   cameraButtonSuccess: {
     padding: 0,
-    borderWidth: 0,
+    borderWidth: 2,
+    borderColor: '#10B981',
     backgroundColor: 'transparent',
   },
   thumbnailContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 16,
+    borderRadius: 14,
     position: 'relative',
   },
   thumbnail: {
     width: '100%',
     height: '100%',
-    borderRadius: 16,
+    borderRadius: 14,
   },
   badge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -8,
+    right: -8,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
+    elevation: 2,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 16,
+    paddingVertical: 16,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#C7D2FE',
     borderStyle: 'dashed',
+    marginTop: 10,
   },
   addButtonText: {
     marginLeft: 8,
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#3B82F6',
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#4F46E5',
+    letterSpacing: 1,
   },
   divider: {
     height: 1,
     backgroundColor: '#E2E8F0',
     marginVertical: 32,
-    marginHorizontal: 24,
+    marginHorizontal: 20,
   },
   commentContainer: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   commentHeader: {
     flexDirection: 'row',
@@ -432,29 +453,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  commentTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   aiButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
   },
   aiButtonText: {
     marginLeft: 6,
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#8B5CF6',
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#4F46E5',
   },
   textArea: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     fontSize: 15,
+    fontWeight: '500',
     color: '#1E293B',
-    minHeight: 120,
+    minHeight: 140,
+    lineHeight: 22,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.02,
@@ -464,16 +493,21 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 10,
   },
   draftButton: {
-    flex: 1,
+    width: 100,
     flexDirection: 'row',
     height: 56,
-    borderRadius: 16,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
@@ -483,19 +517,19 @@ const styles = StyleSheet.create({
   },
   draftButtonText: {
     marginLeft: 8,
-    color: '#475569',
-    fontSize: 16,
-    fontWeight: '700',
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '800',
   },
   completeButton: {
-    flex: 2,
+    flex: 1,
     flexDirection: 'row',
     height: 56,
-    borderRadius: 16,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
+    backgroundColor: '#4F46E5',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -504,7 +538,8 @@ const styles = StyleSheet.create({
   completeButtonText: {
     marginLeft: 8,
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });

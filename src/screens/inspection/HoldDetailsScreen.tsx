@@ -1,8 +1,26 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Dimensions,
+  FlatList,
+  Animated,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { ArrowLeft, Camera, CheckCircle2, ChevronRight, Layers } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Camera,
+  CheckCircle2,
+  ChevronRight,
+  Layers,
+  ChevronLeft,
+  Info,
+} from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import CustomCameraModal from '../../components/CustomCameraModal';
 import {
@@ -15,12 +33,22 @@ import {
   useMandatoryShotsUriMap,
 } from '../../store/useHoldInspectionDraftStore';
 
+const { width } = Dimensions.get('window');
+
+const HOLDS = [
+  { id: 'hold-1', title: 'Hold No. 1', description: 'Forward cargo hold' },
+  { id: 'hold-2', title: 'Hold No. 2', description: 'Mid-forward cargo hold' },
+  { id: 'hold-3', title: 'Hold No. 3', description: 'Center cargo hold' },
+  { id: 'hold-4', title: 'Hold No. 4', description: 'Mid-aft cargo hold' },
+  { id: 'hold-5', title: 'Hold No. 5', description: 'Aft cargo hold' },
+];
+
 const MANDATORY_SHOT_SLOTS = [
-  { id: 's1', label: 'Shot 1' },
-  { id: 's2', label: 'Shot 2' },
-  { id: 's3', label: 'Shot 3' },
-  { id: 's4', label: 'Shot 4' },
-  { id: 's5', label: 'Shot 5' },
+  { id: 's1', label: 'Front View', icon: 'camera' },
+  { id: 's2', label: 'Back View', icon: 'camera' },
+  { id: 's3', label: 'Left Side', icon: 'camera' },
+  { id: 's4', label: 'Right Side', icon: 'camera' },
+  { id: 's5', label: 'Top View', icon: 'camera' },
 ] as const;
 
 const ZONES = [
@@ -35,16 +63,10 @@ const ZONES = [
   { id: 'z9', title: 'Ladders' },
 ];
 
-export default function HoldDetailsScreen() {
+function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: (holdId: string, shotId: string) => void }) {
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const insets = useSafeAreaInsets();
-  
-  const holdTitle = route.params?.title || 'Hold Details';
-  const holdId = route.params?.holdId || 'unknown-hold';
-
-  const shotUriById = useMandatoryShotsUriMap(holdId);
-  const setMandatoryShotUri = useHoldInspectionDraftStore((s) => s.setMandatoryShotUri);
+  const shotUriById = useMandatoryShotsUriMap(hold.id);
+  const completedByZone = useZoneProgressStore((s) => s.completedByZone);
 
   const shots = useMemo(
     () =>
@@ -56,84 +78,88 @@ export default function HoldDetailsScreen() {
     [shotUriById]
   );
 
-  const [isCameraVisible, setCameraVisible] = useState(false);
-  const [activeShotId, setActiveShotId] = useState<string | null>(null);
-
-  const handleTakeShot = (id: string) => {
-    setActiveShotId(id);
-    setCameraVisible(true);
-  };
-
-  const onPictureTaken = (uri: string) => {
-    if (activeShotId) {
-      setMandatoryShotUri(holdId, activeShotId, uri);
-    }
-  };
-
   const completedShots = shots.filter((s) => s.completed).length;
 
-  const completedByZone = useZoneProgressStore((s) => s.completedByZone);
-
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#8B5CF6', '#8B5CF6', '#A78BFA']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
-      >
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{holdTitle}</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
-
+    <View style={styles.holdPage}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
+        {/* Hold Info Card */}
+        <View style={styles.holdInfoCard}>
+          <View style={styles.holdInfoText}>
+            <Text style={styles.holdSubtitle}>Current Status</Text>
+            <Text style={styles.holdTitleDisplay}>{hold.title}</Text>
+            <Text style={styles.holdDescriptionDisplay}>{hold.description}</Text>
+          </View>
+          <View style={styles.holdProgressBadge}>
+             <Text style={styles.holdProgressText}>{Math.round((completedShots / 5) * 100)}%</Text>
+          </View>
+        </View>
+
         {/* Mandatory Shots Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Mandatory Shots</Text>
-            <Text style={styles.progressText}>{completedShots}/5 Completed</Text>
+            <View>
+              <Text style={styles.sectionTitle}>Mandatory Shots</Text>
+              <Text style={styles.sectionSubtitle}>Capture required angles for compliance</Text>
+            </View>
+            <View style={styles.shotCounter}>
+              <Text style={styles.shotCounterText}>{completedShots}/5</Text>
+            </View>
           </View>
 
           <ScrollView 
             horizontal 
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.shotsScroll}
+            snapToInterval={width * 0.45 + 16}
+            decelerationRate="fast"
           >
-            {shots.map((shot, index) => (
-              <View 
+            {shots.map((shot) => (
+              <TouchableOpacity 
                 key={shot.id}
+                style={[styles.shotCard, shot.completed && styles.shotCardCompleted]}
+                onPress={() => onTakeShot(hold.id, shot.id)}
+                activeOpacity={0.9}
               >
-                <TouchableOpacity 
-                  style={[styles.shotCard, shot.completed && styles.shotCardCompleted]}
-                  onPress={() => handleTakeShot(shot.id)}
-                  activeOpacity={0.8}
-                >
-                  {shot.completed && shot.uri ? (
-                    <View style={styles.shotImageContainer}>
-                      <Image source={{ uri: shot.uri }} style={styles.shotImage} />
-                      <View style={styles.shotOverlay}>
-                        <CheckCircle2 size={28} color="#10B981" fill="#FFFFFF" />
+                {shot.completed && shot.uri ? (
+                  <View style={styles.shotImageContainer}>
+                    <Image source={{ uri: shot.uri }} style={styles.shotImage} />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.6)']}
+                      style={styles.shotImageOverlay}
+                    >
+                      <View style={styles.shotStatusRow}>
+                        <CheckCircle2 size={16} color="#10B981" fill="#FFFFFF" />
+                        <Text style={styles.shotStatusText}>Captured</Text>
                       </View>
+                    </LinearGradient>
+                  </View>
+                ) : (
+                  <View style={styles.shotEmptyState}>
+                    <View style={styles.cameraIconBg}>
+                      <Camera size={24} color="#8B5CF6" />
                     </View>
-                  ) : (
-                    <View style={styles.shotEmptyState}>
-                      <Camera size={32} color="#A78BFA" />
-                      <Text style={styles.shotLabel}>{shot.label}</Text>
+                    <Text style={styles.shotLabel}>{shot.label}</Text>
+                    <View style={styles.tapToCapture}>
+                      <Text style={styles.tapToCaptureText}>Tap to Capture</Text>
                     </View>
-                  )}
-                </TouchableOpacity>
-              </View>
+                  </View>
+                )}
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
         {/* Zones Section */}
         <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Detailed Zones</Text>
+              <Text style={styles.sectionSubtitle}>Specific areas to inspect within {hold.title}</Text>
+            </View>
+          </View>
+          
           <View style={styles.zonesList}>
             {ZONES.map((zone) => {
               const { completed, total, pct } = zoneProgressCounts(
@@ -142,50 +168,150 @@ export default function HoldDetailsScreen() {
                 SUBLOCATIONS_PER_ZONE
               );
               return (
-                <View key={zone.id}>
-                  <TouchableOpacity
-                    style={styles.zoneCard}
-                    activeOpacity={0.8}
-                    onPress={() =>
-                      navigation.navigate('ZoneDetails' as never, {
-                        holdId,
-                        zoneId: zone.id,
-                        zoneTitle: zone.title,
-                      } as never)
-                    }
-                  >
-                    <View style={styles.zoneIconContainer}>
+                <TouchableOpacity
+                  key={zone.id}
+                  style={styles.zoneCard}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    navigation.navigate('ZoneDetails' as never, {
+                      holdId: hold.id,
+                      zoneId: zone.id,
+                      zoneTitle: zone.title,
+                    } as never)
+                  }
+                >
+                  <View style={[styles.zoneIconContainer, pct === 100 && styles.zoneIconCompleted]}>
+                    {pct === 100 ? (
+                      <CheckCircle2 size={20} color="#10B981" />
+                    ) : (
                       <Layers size={20} color="#8B5CF6" />
-                    </View>
+                    )}
+                  </View>
 
-                    <View style={styles.zoneContent}>
-                      <View style={styles.zoneTitleRow}>
-                        <Text style={styles.zoneTitle}>{zone.title}</Text>
-                        <Text style={styles.zonePercent}>{pct}%</Text>
-                      </View>
-                      <Text style={styles.zoneProgress}>
-                        {completed}/{total} Sublocations completed
-                      </Text>
-                      <View style={styles.zoneProgressBarOuter}>
-                        <View style={[styles.zoneProgressBarInner, { width: `${pct}%` }]} />
-                      </View>
+                  <View style={styles.zoneContent}>
+                    <View style={styles.zoneTitleRow}>
+                      <Text style={styles.zoneTitle}>{zone.title}</Text>
+                      <Text style={styles.zonePercent}>{pct}%</Text>
                     </View>
+                    <View style={styles.zoneProgressBarOuter}>
+                      <View style={[styles.zoneProgressBarInner, { width: `${pct}%` }, pct === 100 && { backgroundColor: '#10B981' }]} />
+                    </View>
+                  </View>
 
-                    <ChevronRight size={20} color="#CBD5E1" />
-                  </TouchableOpacity>
-                </View>
+                  <ChevronRight size={18} color="#CBD5E1" />
+                </TouchableOpacity>
               );
             })}
           </View>
         </View>
-
       </ScrollView>
+    </View>
+  );
+}
+
+export default function HoldDetailsScreen() {
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const insets = useSafeAreaInsets();
+  
+  const initialHoldId = route.params?.holdId || 'hold-1';
+  const initialIndex = HOLDS.findIndex(h => h.id === initialHoldId);
+  
+  const [activeIndex, setActiveIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
+  const [isCameraVisible, setCameraVisible] = useState(false);
+  const [activeShotInfo, setActiveShotInfo] = useState<{holdId: string, shotId: string} | null>(null);
+
+  const flatListRef = useRef<FlatList>(null);
+  const setMandatoryShotUri = useHoldInspectionDraftStore((s) => s.setMandatoryShotUri);
+
+  const handleTakeShot = (holdId: string, shotId: string) => {
+    setActiveShotInfo({ holdId, shotId });
+    setCameraVisible(true);
+  };
+
+  const onPictureTaken = (uri: string) => {
+    if (activeShotInfo) {
+      setMandatoryShotUri(activeShotInfo.holdId, activeShotInfo.shotId, uri);
+    }
+  };
+
+  const handleHoldPress = (index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+    setActiveIndex(index);
+  };
+
+  const onMomentumScrollEnd = (e: any) => {
+    const x = e.nativeEvent.contentOffset.x;
+    const index = Math.round(x / width);
+    setActiveIndex(index);
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <LinearGradient
+        colors={['#4F46E5', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Vessel Inspection</Text>
+          <TouchableOpacity style={styles.infoButton}>
+            <Info size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Hold Selector Tabs */}
+        <View style={styles.holdSelector}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.holdSelectorScroll}>
+            {HOLDS.map((hold, index) => (
+              <TouchableOpacity 
+                key={hold.id} 
+                onPress={() => handleHoldPress(index)}
+                style={[
+                  styles.holdTab, 
+                  activeIndex === index && styles.holdTabActive
+                ]}
+              >
+                <Text style={[
+                  styles.holdTabText, 
+                  activeIndex === index && styles.holdTabTextActive
+                ]}>
+                  HOLD {index + 1}
+                </Text>
+                {activeIndex === index && <View style={styles.activeTabIndicator} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </LinearGradient>
+
+      <FlatList
+        ref={flatListRef}
+        data={HOLDS}
+        renderItem={({ item }) => <HoldContent hold={item} onTakeShot={handleTakeShot} />}
+        keyExtractor={(item) => item.id}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={onMomentumScrollEnd}
+        initialScrollIndex={initialIndex !== -1 ? initialIndex : 0}
+        getItemLayout={(data, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
+      />
 
       <CustomCameraModal 
         visible={isCameraVisible} 
         onClose={() => setCameraVisible(false)} 
         onPictureTaken={onPictureTaken} 
-        guideText={shots.find(s => s.id === activeShotId)?.label || "CAPTURE PHOTO"}
+        guideText={MANDATORY_SHOT_SLOTS.find(s => s.id === activeShotInfo?.shotId)?.label || "CAPTURE PHOTO"}
       />
     </View>
   );
@@ -194,33 +320,136 @@ export default function HoldDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F1F5F9',
   },
   header: {
+    paddingHorizontal: 0,
+    paddingBottom: 0,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    elevation: 10,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    marginBottom: 15,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
+  infoButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+  },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  holdSelector: {
+    paddingBottom: 10,
+  },
+  holdSelectorScroll: {
+    paddingHorizontal: 20,
+  },
+  holdTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  holdTabActive: {
+    // No background, just indicator
+  },
+  holdTabText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.6)',
+  },
+  holdTabTextActive: {
     color: '#FFFFFF',
   },
+  activeTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    width: 24,
+    height: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+  },
+  holdPage: {
+    width: width,
+    flex: 1,
+  },
   scrollContent: {
-    paddingBottom: 40,
-    paddingTop: 24,
+    paddingBottom: 100,
+    paddingTop: 20,
+  },
+  holdInfoCard: {
+    marginHorizontal: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
+  },
+  holdInfoText: {
+    flex: 1,
+  },
+  holdSubtitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#6366F1',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  holdTitleDisplay: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  holdDescriptionDisplay: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  holdProgressBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 2,
+    borderColor: '#E0E7FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  holdProgressText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#4F46E5',
   },
   section: {
     marginBottom: 32,
@@ -228,34 +457,55 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#1E293B',
+    letterSpacing: -0.5,
   },
-  progressText: {
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  shotCounter: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  shotCounterText: {
+    color: '#4F46E5',
+    fontWeight: '800',
     fontSize: 14,
-    fontWeight: '600',
-    color: '#8B5CF6',
   },
   shotsScroll: {
-    paddingHorizontal: 24,
-    paddingBottom: 8,
+    paddingLeft: 20,
+    paddingRight: 10,
+    paddingBottom: 10,
   },
   shotCard: {
-    width: 120,
-    height: 140,
+    width: width * 0.45,
+    height: 200,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    borderRadius: 28,
     marginRight: 16,
     borderWidth: 2,
     borderColor: '#E2E8F0',
     borderStyle: 'dashed',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   shotCardCompleted: {
     borderStyle: 'solid',
@@ -266,93 +516,124 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 16,
+  },
+  cameraIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 20,
+    backgroundColor: '#F5F3FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   shotLabel: {
-    marginTop: 12,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  tapToCapture: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  tapToCaptureText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#64748B',
+    textTransform: 'uppercase',
   },
   shotImageContainer: {
     flex: 1,
-    position: 'relative',
   },
   shotImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  shotOverlay: {
+  shotImageOverlay: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 14,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    height: '40%',
+    justifyContent: 'flex-end',
+  },
+  shotStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  shotStatusText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 6,
   },
   zonesList: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   zoneCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 20,
+    padding: 18,
+    borderRadius: 24,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.02,
     shadowRadius: 8,
     elevation: 2,
   },
   zoneIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#F3E8FF',
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#F5F3FF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  zoneIconCompleted: {
+    backgroundColor: '#ECFDF5',
   },
   zoneContent: {
     flex: 1,
     marginLeft: 16,
-    marginRight: 8,
+    marginRight: 12,
   },
   zoneTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 10,
   },
   zoneTitle: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1E293B',
     marginRight: 8,
   },
   zonePercent: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#8B5CF6',
-  },
-  zoneProgress: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#4F46E5',
   },
   zoneProgressBarOuter: {
-    height: 6,
+    height: 8,
     backgroundColor: '#F1F5F9',
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   zoneProgressBarInner: {
     height: '100%',
-    backgroundColor: '#8B5CF6',
-    borderRadius: 3,
+    backgroundColor: '#6366F1',
+    borderRadius: 4,
   },
 });
