@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid } from 'lucide-react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
 // Stores
 import { useAuthStore } from './src/store/useAuthStore';
@@ -51,16 +52,29 @@ function TabNavigator() {
           left: 24,
           right: 24,
           elevation: 10,
-          backgroundColor: '#FFFFFF',
+          backgroundColor: 'transparent',
           borderRadius: 32,
           height: 64,
           shadowColor: '#0F172A',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.08,
-          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.15,
+          shadowRadius: 25,
           borderTopWidth: 0,
           paddingBottom: Platform.OS === 'ios' ? 18 : 0,
         },
+        tabBarBackground: () => (
+          <LinearGradient
+            colors={['rgba(255, 255, 255, 0.9)', 'rgba(255, 255, 255, 0.5)']}
+            style={{ 
+              flex: 1, 
+              borderRadius: 32,
+              borderWidth: 1.5,
+              borderColor: 'rgba(255, 255, 255, 0.8)',
+            }}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        ),
         tabBarActiveTintColor: '#3B82F6',
         tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, ChevronRight, FileText, Ship, PaintBucket, Navigation, Droplets, CheckCircle2 } from 'lucide-react-native';
@@ -14,7 +14,7 @@ const OPTIONS = [
     title: 'Pre-Inspection Doc',
     description: 'Review and verify pre-inspection documents',
     icon: FileText,
-    colors: ['#0787e2', '#45a6f0'],
+    colors: ['#3B82F6', '#2563EB'],
     iconColor: '#FFF',
     screen: 'PreInspectionDoc',
     dataKey: 'preInspectionDoc',
@@ -24,7 +24,7 @@ const OPTIONS = [
     title: 'Vessel Particular',
     description: 'Detailed specifications and details of the vessel',
     icon: Ship,
-    colors: ['#10B981', '#34D399'],
+    colors: ['#0EA5E9', '#0284C7'],
     iconColor: '#FFF',
     screen: 'VesselParticular',
     dataKey: 'vesselParticulars',
@@ -34,7 +34,7 @@ const OPTIONS = [
     title: 'Cleaning Standards',
     description: 'Checklist and protocols for hold cleaning',
     icon: PaintBucket,
-    colors: ['#F59E0B', '#FBBF24'],
+    colors: ['#8B5CF6', '#7C3AED'],
     iconColor: '#FFF',
     screen: 'CleaningStandards',
     dataKey: 'cleaningStandards',
@@ -44,7 +44,7 @@ const OPTIONS = [
     title: 'Walk the Hold',
     description: 'Physical inspection and walk-through of the hold',
     icon: Navigation,
-    colors: ['#8B5CF6', '#A78BFA'],
+    colors: ['#F59E0B', '#D97706'],
     iconColor: '#FFF',
     screen: 'WalkTheHold',
     dataKey: 'walkTheHold',
@@ -54,7 +54,7 @@ const OPTIONS = [
     title: 'Days & Fresh Water',
     description: 'Track fresh water usage and remaining days',
     icon: Droplets,
-    colors: ['#3B82F6', '#60A5FA'],
+    colors: ['#10B981', '#059669'],
     iconColor: '#FFF',
     screen: 'DaysFreshWater',
     dataKey: 'daysFreshWater',
@@ -81,24 +81,23 @@ export default function PreHoldCleaningScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#0787e2', '#0787e2', '#45a6f0']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
-      >
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      
+      {/* Seamless Modern Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#FFFFFF" />
+          <ArrowLeft size={24} color="#0F172A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pre Hold Cleaning</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
+        <Text style={styles.headerTitle}>Hold Cleaning</Text>
+        <View style={{ width: 44 }} />
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerTextContainer}>
           <Text style={styles.subtitle}>Inspection Sequence</Text>
-          <Text style={styles.description}>Follow this step-by-step guide to complete the pre-hold cleaning process efficiently.</Text>
+          <Text style={styles.description}>
+            Follow this step-by-step guide to thoroughly complete the pre-hold cleaning process.
+          </Text>
         </View>
 
         <View style={styles.timelineContainer}>
@@ -119,25 +118,29 @@ export default function PreHoldCleaningScreen() {
                     end={{ x: 1, y: 1 }}
                     style={styles.timelineIconBg}
                   >
-                    {completed ? <CheckCircle2 size={22} color="#FFF" /> : <Icon size={20} color={item.iconColor} />}
+                    {completed ? <CheckCircle2 size={24} color="#FFF" /> : <Icon size={22} color={item.iconColor} />}
                   </LinearGradient>
                   {!isLast && <View style={[styles.timelineLine, completed && { backgroundColor: '#10B981' }]} />}
                 </View>
                 
                 <TouchableOpacity 
                   style={[styles.timelineCard, completed && styles.completedCard]} 
-                  activeOpacity={item.screen ? 0.7 : 1}
+                  activeOpacity={item.screen ? 0.8 : 1}
                   onPress={() => item.screen ? navigation.navigate(item.screen as never) : null}
                 >
                   <View style={styles.cardContent}>
                     <View style={styles.cardTitleRow}>
                       <Text style={[styles.cardTitle, completed && styles.completedTitle]}>{item.title}</Text>
-                      {completed && <View style={styles.statusBadge}><Text style={styles.statusBadgeText}>COMPLETED</Text></View>}
+                      {completed && (
+                        <View style={styles.statusPill}>
+                          <Text style={styles.statusPillText}>COMPLETED</Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={styles.cardDescription}>{item.description}</Text>
                   </View>
                   <View style={styles.chevronContainer}>
-                    <ChevronRight size={18} color={completed ? '#10B981' : '#94A3B8'} />
+                    <ChevronRight size={20} color={completed ? '#10B981' : '#CBD5E1'} />
                   </View>
                 </TouchableOpacity>
               </View>
@@ -159,45 +162,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingBottom: 16,
+    backgroundColor: '#F8FAFC',
+    zIndex: 10,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 14,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#0F172A',
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
   headerTextContainer: {
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
   },
   subtitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1E293B',
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#0F172A',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   description: {
     fontSize: 15,
     color: '#64748B',
-    lineHeight: 22,
+    lineHeight: 24,
+    fontWeight: '500',
   },
   timelineContainer: {
     paddingHorizontal: 24,
-    paddingTop: 8,
   },
   timelineRow: {
     flexDirection: 'row',
@@ -205,91 +216,95 @@ const styles = StyleSheet.create({
   },
   timelineConnector: {
     alignItems: 'center',
-    marginRight: 16,
-    width: 48,
+    marginRight: 20,
+    width: 56,
     zIndex: 10,
   },
   timelineIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowRadius: 10,
+    elevation: 6,
     zIndex: 2,
   },
   timelineLine: {
     position: 'absolute',
-    top: 48,
+    top: 56,
     bottom: -24,
-    width: 2,
+    width: 3,
     backgroundColor: '#E2E8F0',
     zIndex: 1,
+    borderRadius: 1.5,
   },
   timelineCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 3,
   },
   cardContent: {
     flex: 1,
-    marginRight: 12,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
-  chevronContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  completedCard: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
+    marginRight: 16,
   },
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+  },
+  cardDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  chevronContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completedCard: {
+    borderColor: '#D1FAE5',
+    backgroundColor: '#F8FAFC',
   },
   completedTitle: {
     color: '#059669',
   },
-  statusBadge: {
-    backgroundColor: '#10B981',
+  statusPill: {
+    backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginLeft: 8,
   },
-  statusBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 9,
+  statusPillText: {
+    color: '#10B981',
+    fontSize: 10,
     fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
