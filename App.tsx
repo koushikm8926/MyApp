@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, StatusBar } from 'react-native';
+import { View, TouchableOpacity, StatusBar, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -44,15 +44,34 @@ function TabNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: true,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#f1f5f9',
-          borderTopWidth: 1,
-          elevation: 0,
-          shadowOpacity: 0,
+          position: 'absolute',
+          bottom: Platform.OS === 'ios' ? 24 : 16,
+          left: 24,
+          right: 24,
+          elevation: 10,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 32,
+          height: 64,
+          shadowColor: '#0F172A',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 20,
+          borderTopWidth: 0,
+          paddingBottom: Platform.OS === 'ios' ? 18 : 0,
         },
-        tabBarActiveTintColor: '#0787e2',
+        tabBarActiveTintColor: '#3B82F6',
         tabBarInactiveTintColor: '#94A3B8',
+        tabBarLabelStyle: {
+          fontWeight: '700',
+          fontSize: 10,
+          marginTop: -5,
+          marginBottom: Platform.OS === 'ios' ? 0 : 8,
+        },
+        tabBarItemStyle: {
+          paddingVertical: Platform.OS === 'ios' ? 12 : 8,
+        },
       }}
     >
       <Tab.Screen
