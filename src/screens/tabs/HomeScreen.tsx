@@ -1,14 +1,52 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Platform, Image, Modal, FlatList, TextInput, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
+import { 
+  StyleSheet, 
+  Text, 
+  View, 
+  ScrollView, 
+  TouchableOpacity, 
+  Dimensions, 
+  Platform, 
+  Image, 
+  Modal, 
+  FlatList, 
+  TextInput, 
+  KeyboardAvoidingView, 
+  ActivityIndicator,
+  StatusBar
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, ClipboardCheck, Ship, Layers, ChevronRight, CheckCircle2, Car, Lock, X, Plus, Search, Filter, Tag, Info, Hash, Calendar } from 'lucide-react-native';
+import { 
+  Camera, 
+  ClipboardCheck, 
+  Ship, 
+  Layers, 
+  ChevronRight, 
+  CheckCircle2, 
+  Car, 
+  Lock, 
+  X, 
+  Plus, 
+  Search, 
+  Filter, 
+  Tag, 
+  Info, 
+  Hash, 
+  Calendar,
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  MoreVertical,
+  Activity,
+  Sparkles
+} from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
 import { databaseService } from '../../services/databaseService';
-import { LinearGradient } from 'react-native-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function Home() {
   const user = useAuthStore((state) => state.user);
@@ -29,6 +67,22 @@ export default function Home() {
   const [year, setYear] = useState('');
   const [plate, setPlate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      loadInspections(user.id);
+      loadVehicles(user.id);
+    }
+  }, [user]);
+
+  const loadVehicles = async (userId: string) => {
+    try {
+      const data = await databaseService.getVehicles(userId);
+      setVehicles(data);
+    } catch (err) {
+      console.error('Failed to load vehicles', err);
+    }
+  };
 
   const handleAddVehicle = async () => {
     if (!user || !make || !model) return;
@@ -70,22 +124,6 @@ export default function Home() {
     return 0;
   });
 
-  useEffect(() => {
-    if (user) {
-      loadInspections(user.id);
-      loadVehicles(user.id);
-    }
-  }, [user]);
-
-  const loadVehicles = async (userId: string) => {
-    try {
-      const data = await databaseService.getVehicles(userId);
-      setVehicles(data);
-    } catch (err) {
-      console.error('Failed to load vehicles', err);
-    }
-  };
-
   const handleActionPress = (screen: string | null, locked: boolean) => {
     if (!screen || locked) return;
     setSelectedScreen(screen);
@@ -111,113 +149,185 @@ export default function Home() {
 
   const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vehicleId, item])).values());
   const recentInspections = uniqueInspections.slice(0, 3);
-  const totalInspections = uniqueInspections.length;
-  const pendingInspections = uniqueInspections.filter(i => i.status === 'pending' || i.status === 'draft').length;
-
+  const totalCount = uniqueInspections.length;
+  const pendingCount = uniqueInspections.filter(i => i.status === 'pending' || i.status === 'draft').length;
+  const completedCount = uniqueInspections.filter(i => i.status === 'completed').length;
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
         {/* Header Section */}
-        <View style={styles.headerContainer}>
-          <LinearGradient
-            colors={['#0787e2', '#0787e2', '#45a6f0']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.headerGradient, { paddingTop: insets.top + 20 }]}
-          >
-            <View style={styles.headerTop}>
-              <View>
-                <Text style={styles.greetingText}>Welcome back,</Text>
-                <Text style={styles.userNameText}>{user?.name || 'User'}</Text>
-              </View>
-              <TouchableOpacity style={styles.profileBtn}>
-                <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=256&h=256' }} 
-                  style={styles.profileAvatar} 
-                />
-              </TouchableOpacity>
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greetingText}>Good morning,</Text>
+              <Text style={styles.userNameText}>{user?.name || 'Surveyor'}</Text>
             </View>
-
-          </LinearGradient>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-
-
-          <View style={styles.secondaryActionsGrid}>
-            {[
-              { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Pre Hold\nCleaning",  color: "#ECFDF5", iconColor: "#10B981", locked: false },
-              { screen: null, icon: Ship,           label: "Bunker\nSurvey",    color: "#EFF6FF", iconColor: "#0787e2", locked: true },
-              { screen: null, icon: Layers,          label: "Combined\nInsp.",    color: "#FAF5FF", iconColor: "#8B5CF6", locked: true },
-            ].map((item, index) => (
-              <View 
-                key={index}
-                style={styles.secondaryActionCardContainer}
-              >
-                
-                  <TouchableOpacity 
-                    style={[styles.secondaryActionCard, item.locked && { opacity: 0.6 }]} 
-                    onPress={() => handleActionPress(item.screen, item.locked)}
-                    activeOpacity={item.screen && !item.locked ? 0.2 : 1}
-                  >
-                    <View style={[styles.secondaryIconContainer, { backgroundColor: item.color }]}>
-                      <item.icon size={22} color={item.iconColor} />
-                    </View>
-                    <Text style={styles.secondaryActionLabel}>{item.label}</Text>
-                    {item.locked && (
-                      <View style={{ position: 'absolute', top: 8, right: 8 }}>
-                        <Lock size={14} color="#94A3B8" />
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                
-              </View>
-            ))}
+            <TouchableOpacity style={styles.profileBtn}>
+              <Image 
+                source={{ uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=256&h=256' }} 
+                style={styles.profileAvatar} 
+              />
+              <View style={styles.onlineBadge} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Recent Activity */}
+        {/* Primary Action Card (Modern Style) */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.heroCardWrapper}
+            onPress={() => navigation.navigate('StartInspection')}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#1E293B', '#0F172A']}
+              style={styles.heroCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.heroCardBgCircle} />
+              <View style={styles.heroCardContent}>
+                <View>
+                  <View style={styles.heroBadge}>
+                    <Sparkles size={12} color="#3B82F6" />
+                    <Text style={styles.heroBadgeText}>AI POWERED</Text>
+                  </View>
+                  <Text style={styles.heroTitle}>Start New Inspection</Text>
+                  <Text style={styles.heroDesc}>Begin a guided evaluation session</Text>
+                </View>
+                <View style={styles.heroIconBtn}>
+                  <Plus size={28} color="#0F172A" />
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats Overview (Minimalist) */}
+        <View style={styles.section}>
+          <View style={styles.statsContainer}>
+            <View style={styles.statBox}>
+              <View style={[styles.statIconWrapper, { backgroundColor: '#EFF6FF' }]}>
+                <Layers size={20} color="#3B82F6" />
+              </View>
+              <Text style={styles.statValue}>{totalCount}</Text>
+              <Text style={styles.statLabel}>Total Audits</Text>
+            </View>
+            <View style={styles.statBox}>
+              <View style={[styles.statIconWrapper, { backgroundColor: '#FFFBEB' }]}>
+                <Activity size={20} color="#F59E0B" />
+              </View>
+              <Text style={styles.statValue}>{pendingCount}</Text>
+              <Text style={styles.statLabel}>In Progress</Text>
+            </View>
+            <View style={styles.statBox}>
+              <View style={[styles.statIconWrapper, { backgroundColor: '#ECFDF5' }]}>
+                <CheckCircle2 size={20} color="#10B981" />
+              </View>
+              <Text style={styles.statValue}>{completedCount}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Modules Section (Horizontal Scroll) */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Modules</Text>
+            <TouchableOpacity>
+              <MoreVertical size={20} color="#94A3B8" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modulesScroll}>
+            {[
+              { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Hold Cleaning", desc: "Pre-load prep", color: "#10B981", bg: "#ECFDF5", locked: false },
+              { screen: "Camera",           icon: Camera,         label: "Quick Scan", desc: "Capture damage", color: "#3B82F6", bg: "#EFF6FF", locked: false },
+              { screen: null,               icon: Lock,           label: "Bunker Survey", desc: "Fuel checking", color: "#64748B", bg: "#F1F5F9", locked: true },
+              { screen: null,               icon: Ship,           label: "Draft Survey", desc: "Weight calc", color: "#64748B", bg: "#F1F5F9", locked: true },
+            ].map((item, index) => (
+              <TouchableOpacity 
+                key={index}
+                style={[styles.moduleHCard, item.locked && styles.lockedModule]}
+                onPress={() => {
+                  if (item.screen === 'Camera') {
+                    navigation.navigate('Tabs', { screen: 'Camera' });
+                  } else {
+                    handleActionPress(item.screen, item.locked);
+                  }
+                }}
+                activeOpacity={item.locked ? 1 : 0.7}
+              >
+                <View style={[styles.moduleHIcon, { backgroundColor: item.bg }]}>
+                  <item.icon size={24} color={item.color} />
+                </View>
+                <Text style={styles.moduleHLabel}>{item.label}</Text>
+                <Text style={styles.moduleHDesc}>{item.desc}</Text>
+                {item.locked && (
+                  <View style={styles.lockHBadge}>
+                    <Lock size={12} color="#94A3B8" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Recent Activity Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Activity</Text>
             <TouchableOpacity onPress={() => navigation.navigate('History')}>
-              <Text style={styles.seeAllText}>See All</Text>
+              <Text style={styles.seeAllText}>See all</Text>
             </TouchableOpacity>
           </View>
 
           {recentInspections.length > 0 ? (
-            recentInspections.map((item, index) => (
-              <View 
-                key={item.id}
-              >
+            <View style={styles.activityList}>
+              {recentInspections.map((item, index) => (
                 <TouchableOpacity 
-                  style={styles.activityItem}
+                  key={item.id}
+                  style={styles.timelineItem}
                   onPress={() => navigation.navigate('Inspection', { id: item.id })}
                 >
-                  <View style={[styles.activityIcon, { backgroundColor: item.status === 'completed' ? '#ECFDF5' : '#FFFBEB' }]}>
-                    <CheckCircle2 size={20} color={item.status === 'completed' ? '#10B981' : '#F59E0B'} />
+                  <View style={styles.timelineLeft}>
+                    <View style={[styles.timelineDot, { backgroundColor: item.status === 'completed' ? '#10B981' : '#F59E0B' }]} />
+                    {index !== recentInspections.length - 1 && <View style={styles.timelineLine} />}
                   </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityTitle}>{item.vehicleName}</Text>
-                    <View style={styles.plateBadgeSmall}>
-                      <Text style={styles.plateBadgeTextSmall}>{item.vehiclePlate}</Text>
+                  
+                  <View style={styles.timelineContent}>
+                    <View style={styles.timelineHeader}>
+                      <Text style={styles.timelineTitle}>{item.vehicleName}</Text>
+                      <Text style={styles.timelineTime}>
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </Text>
                     </View>
-                    <Text style={styles.activityDate}>
-                      {new Date(item.createdAt).toLocaleDateString()} • {item.status.toUpperCase()}
-                    </Text>
+                    
+                    <View style={styles.timelineFooter}>
+                      <View style={styles.timelineBadge}>
+                        <Hash size={12} color="#64748B" />
+                        <Text style={styles.timelineBadgeText}>{item.vehiclePlate}</Text>
+                      </View>
+                      <View style={[styles.statusPill, { backgroundColor: item.status === 'completed' ? '#ECFDF5' : '#FFFBEB' }]}>
+                        <Text style={[styles.statusPillText, { color: item.status === 'completed' ? '#10B981' : '#F59E0B' }]}>
+                          {item.status.toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <ChevronRight size={20} color="#CBD5E1" />
                 </TouchableOpacity>
-              </View>
-            ))
+              ))}
+            </View>
           ) : (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyStateText}>No recent inspections</Text>
+            <View style={styles.emptyStateModern}>
+              <View style={styles.emptyStateIconBg}>
+                <ClipboardCheck size={32} color="#94A3B8" />
+              </View>
+              <Text style={styles.emptyStateModernText}>No recent activity</Text>
+              <Text style={styles.emptyStateModernSub}>Your inspections will appear here</Text>
             </View>
           )}
         </View>
@@ -233,19 +343,18 @@ export default function Home() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { paddingBottom: insets.bottom || 24 }]}>
+            <View style={styles.modalIndicator} />
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalTitle}>Select Vehicle</Text>
-                <Text style={styles.modalSubtitle}>Which vehicle are you inspecting?</Text>
+                <Text style={styles.modalSubtitle}>Identify the target for inspection</Text>
               </View>
               <View style={styles.modalHeaderActions}>
                 <TouchableOpacity 
                   style={styles.headerAddBtn} 
-                  onPress={() => {
-                    setAddVehicleVisible(true);
-                  }}
+                  onPress={() => setAddVehicleVisible(true)}
                 >
-                  <Plus size={20} color="#0787e2" />
+                  <Plus size={20} color="#3B82F6" />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                   <X size={24} color="#64748B" />
@@ -266,7 +375,7 @@ export default function Home() {
                   />
                 </View>
                 <TouchableOpacity style={styles.modalFilterBtn} onPress={() => setFilterVisible(true)}>
-                  <Filter size={18} color="#0787e2" />
+                  <Filter size={18} color="#3B82F6" />
                 </TouchableOpacity>
               </View>
             )}
@@ -277,18 +386,13 @@ export default function Home() {
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 style={styles.vehicleList}
-                ListEmptyComponent={
-                  <View style={styles.emptySearch}>
-                    <Text style={styles.emptySearchText}>No vehicles match your search.</Text>
-                  </View>
-                }
                 renderItem={({ item }) => (
                   <TouchableOpacity 
                     style={styles.vehicleItem}
                     onPress={() => handleSelectVehicle(item)}
                   >
                     <View style={styles.vehicleIconBg}>
-                      <Car size={24} color="#0787e2" />
+                      <Car size={24} color="#3B82F6" />
                     </View>
                     <View style={styles.vehicleInfo}>
                       <Text style={styles.vehicleMakeModel}>{item.make} {item.model}</Text>
@@ -301,15 +405,12 @@ export default function Home() {
             ) : (
               <View style={styles.emptyVehicles}>
                 <Car size={48} color="#CBD5E1" style={{ marginBottom: 16 }} />
-                <Text style={styles.emptyVehiclesText}>No vehicles in your garage.</Text>
+                <Text style={styles.emptyVehiclesText}>No vehicles registered yet</Text>
                 <TouchableOpacity 
                   style={styles.addVehicleBtn}
-                  onPress={() => {
-                    setAddVehicleVisible(true);
-                  }}
+                  onPress={() => setAddVehicleVisible(true)}
                 >
-                  <Plus size={20} color="#fff" style={{ marginRight: 8 }} />
-                  <Text style={styles.addVehicleBtnText}>Add a Vehicle</Text>
+                  <Text style={styles.addVehicleBtnText}>Register Your First Vehicle</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -332,8 +433,8 @@ export default function Home() {
             <View style={styles.modalIndicator} />
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Add New Vehicle</Text>
-                <Text style={styles.modalSubtitle}>Enter details to register vehicle</Text>
+                <Text style={styles.modalTitle}>Register Vehicle</Text>
+                <Text style={styles.modalSubtitle}>Enter details for the permanent record</Text>
               </View>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setAddVehicleVisible(false)}>
                 <X size={24} color="#64748B" />
@@ -342,31 +443,33 @@ export default function Home() {
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
               <View style={styles.form}>
-                <Text style={styles.inputLabel}>BASIC INFO</Text>
-                <View style={styles.inputGroup}>
-                  <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Make (e.g. Toyota)"
-                    value={make}
-                    onChangeText={setMake}
-                    placeholderTextColor="#94A3B8"
-                  />
+                <Text style={styles.inputLabel}>MANUFACTURER & MODEL</Text>
+                <View style={styles.inputRow}>
+                  <View style={styles.inputGroup}>
+                    <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Make"
+                      value={make}
+                      onChangeText={setMake}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { marginLeft: 12 }]}>
+                    <Car size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Model"
+                      value={model}
+                      onChangeText={setModel}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Car size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Model (e.g. Camry)"
-                    value={model}
-                    onChangeText={setModel}
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-
-                <View style={styles.row}>
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+                <Text style={styles.inputLabel}>IDENTIFICATION</Text>
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputGroup, { flex: 0.4 }]}>
                     <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
@@ -377,7 +480,7 @@ export default function Home() {
                       placeholderTextColor="#94A3B8"
                     />
                   </View>
-                  <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                  <View style={[styles.inputGroup, { flex: 0.6, marginLeft: 12 }]}>
                     <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
@@ -390,8 +493,8 @@ export default function Home() {
                 </View>
 
                 <View style={styles.infoBox}>
-                  <Info size={16} color="#0787e2" />
-                  <Text style={styles.infoText}>Adding a vehicle allows you to track its entire inspection history in one place.</Text>
+                  <Info size={16} color="#3B82F6" />
+                  <Text style={styles.infoText}>Accurate details ensure compliance with international maritime inspection standards.</Text>
                 </View>
 
                 <TouchableOpacity 
@@ -400,13 +503,13 @@ export default function Home() {
                   disabled={!make || !model || isSubmitting}
                 >
                   <LinearGradient
-                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#1E293B', '#334155']}
+                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
                     style={styles.submitGradient}
                   >
                     {isSubmitting ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={styles.submitButtonText}>Register Vehicle</Text>
+                      <Text style={styles.submitButtonText}>Confirm Registration</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -414,57 +517,6 @@ export default function Home() {
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Filter Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isFilterVisible}
-        onRequestClose={() => setFilterVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { paddingBottom: insets.bottom || 24 }]}>
-            <View style={styles.modalIndicator} />
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Sort & Filter</Text>
-              </View>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setFilterVisible(false)}>
-                <X size={24} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.filterSection}>
-              <Text style={styles.inputLabel}>SORT BY</Text>
-              
-              {[
-                { id: 'recent', label: 'Recently Added' },
-                { id: 'makeAsc', label: 'Make (A-Z)' },
-                { id: 'yearDesc', label: 'Year (Newest First)' },
-                { id: 'yearAsc', label: 'Year (Oldest First)' },
-              ].map((option) => (
-                <TouchableOpacity 
-                  key={option.id}
-                  style={[
-                    styles.filterOption, 
-                    sortBy === option.id && styles.filterOptionSelected
-                  ]}
-                  onPress={() => {
-                    setSortBy(option.id);
-                    setFilterVisible(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.filterOptionText,
-                    sortBy === option.id && styles.filterOptionTextSelected
-                  ]}>{option.label}</Text>
-                  {sortBy === option.id && <CheckCircle2 size={20} color="#0787e2" />}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
       </Modal>
     </View>
   );
@@ -478,88 +530,169 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  headerContainer: {
-    marginBottom: 24,
-  },
-  headerGradient: {
+  header: {
     paddingHorizontal: 24,
-    paddingBottom: 32,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    marginBottom: 20,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32,
   },
   greetingText: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   userNameText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    marginTop: 4,
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: 2,
     letterSpacing: -0.5,
   },
   profileBtn: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 24,
+    backgroundColor: '#FFF',
+    borderWidth: 2,
+    borderColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   profileAvatar: {
     width: '100%',
     height: '100%',
-  },
-  statsContainer: {
-    marginTop: 8,
-  },
-  statsScroll: {
-    paddingRight: 24,
-  },
-  statCard: {
-    width: 140,
-    height: 100,
-    marginRight: 16,
     borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
   },
-  statGradient: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  statInfo: {
-    marginTop: 8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-    textTransform: 'uppercase',
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#10B981',
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
   section: {
     paddingHorizontal: 24,
     marginBottom: 32,
+  },
+  heroCardWrapper: {
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  heroCard: {
+    borderRadius: 32,
+    padding: 24,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroCardBgCircle: {
+    position: 'absolute',
+    top: -50,
+    right: -20,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  heroCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  heroBadgeText: {
+    color: '#60A5FA',
+    fontSize: 10,
+    fontWeight: '800',
+    marginLeft: 4,
+    letterSpacing: 0.5,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#F8FAFC',
+    letterSpacing: -0.5,
+  },
+  heroDesc: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  heroIconBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 16,
+    borderRadius: 24,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  statIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+    marginTop: 4,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -569,190 +702,232 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
   },
   seeAllText: {
-    color: '#0787e2',
+    color: '#3B82F6',
     fontSize: 14,
     fontWeight: '700',
   },
-  primaryActionCard: {
-    borderRadius: 24,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#0787e2',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
+  modulesScroll: {
+    paddingRight: 24,
   },
-  primaryActionGradient: {
-    padding: 20,
-  },
-  primaryActionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  primaryActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryActionText: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  primaryActionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  primaryActionDesc: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '500',
-  },
-  primaryActionChevron: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  secondaryActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  secondaryActionCardContainer: {
-    width: '31%',
-  },
-  secondaryActionCard: {
+  moduleHCard: {
+    width: 140,
     backgroundColor: '#FFF',
     padding: 16,
-    borderRadius: 20,
-    alignItems: 'center',
+    borderRadius: 24,
+    marginRight: 16,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.03,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 2,
   },
-  secondaryIconContainer: {
+  lockedModule: {
+    opacity: 0.7,
+    backgroundColor: '#F8FAFC',
+  },
+  moduleHIcon: {
     width: 48,
     height: 48,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  secondaryActionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1E293B',
-    textAlign: 'center',
+  moduleHLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
   },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  activityIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  activityInfo: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  activityDate: {
+  moduleHDesc: {
     fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
+    color: '#94A3B8',
     fontWeight: '500',
   },
-  emptyState: {
-    padding: 40,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
+  lockHBadge: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
   },
-  emptyStateText: {
+  activityList: {
+    backgroundColor: '#FFF',
+    borderRadius: 28,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  timelineLeft: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 12,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3B82F6',
+    zIndex: 2,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    marginTop: -4,
+    marginBottom: -24,
+    zIndex: 1,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 4,
+  },
+  timelineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  timelineTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+  },
+  timelineTime: {
+    fontSize: 12,
     color: '#94A3B8',
-    fontSize: 14,
     fontWeight: '600',
   },
+  timelineFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  timelineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timelineBadgeText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  emptyStateModern: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    backgroundColor: '#FFF',
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    borderStyle: 'dashed',
+  },
+  emptyStateIconBg: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyStateModernText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  emptyStateModernSub: {
+    fontSize: 13,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  // Modal Styles remain essentially the same but polished
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 24,
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 12,
     paddingHorizontal: 24,
-    maxHeight: '80%',
+    maxHeight: '85%',
+  },
+  modalIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
   },
   modalHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerAddBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1E293B',
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginTop: 4,
+    marginRight: 10,
   },
   closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -763,56 +938,49 @@ const styles = StyleSheet.create({
   },
   modalSearchBar: {
     flex: 1,
-    height: 44,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
+    height: 52,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    marginRight: 10,
+    paddingHorizontal: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   modalSearchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: 10,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#0F172A',
   },
   modalFilterBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#EEF2FF',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emptySearch: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptySearchText: {
-    fontSize: 14,
-    color: '#94A3B8',
-    fontWeight: '500',
-  },
   vehicleList: {
-    maxHeight: 400,
+    maxHeight: height * 0.5,
   },
   vehicleItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF',
     padding: 16,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
   vehicleIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#EEF2FF',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -822,167 +990,115 @@ const styles = StyleSheet.create({
   },
   vehicleMakeModel: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
+    fontWeight: '800',
+    color: '#0F172A',
   },
   vehiclePlate: {
     fontSize: 13,
     color: '#64748B',
-    fontWeight: '500',
+    marginTop: 4,
+    fontWeight: '600',
   },
   emptyVehicles: {
+    padding: 40,
     alignItems: 'center',
-    paddingVertical: 40,
   },
   emptyVehiclesText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#64748B',
-    marginBottom: 24,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   addVehicleBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0787e2',
+    marginTop: 20,
+    backgroundColor: '#3B82F6',
     paddingHorizontal: 24,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   addVehicleBtnText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  modalIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 24,
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
   formScroll: {
-    paddingHorizontal: 8,
+    marginTop: 8,
   },
   form: {
-    width: '100%',
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   inputLabel: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#94A3B8',
-    marginBottom: 12,
+    fontWeight: '900',
+    color: '#64748B',
+    marginBottom: 10,
     letterSpacing: 1,
+    marginTop: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   inputGroup: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-    height: 64,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-  },
-  row: {
-    flexDirection: 'row',
+    height: 56,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   inputIcon: {
-    marginRight: 16,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#EFF6FF',
     padding: 16,
     borderRadius: 16,
-    marginTop: 8,
-    marginBottom: 32,
+    marginTop: 12,
     alignItems: 'center',
   },
   infoText: {
     flex: 1,
-    fontSize: 13,
-    color: '#0787e2',
-    fontWeight: '600',
     marginLeft: 12,
+    fontSize: 13,
+    color: '#1E40AF',
     lineHeight: 18,
+    fontWeight: '600',
   },
   submitButton: {
-    height: 64,
+    marginTop: 32,
+    height: 60,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonDisabled: {
     opacity: 0.5,
-    shadowOpacity: 0,
-    elevation: 0,
   },
   submitGradient: {
-    width: '100%',
-    height: '100%',
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '800',
-  },
-  filterSection: {
-    paddingTop: 16,
-  },
-  filterOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    marginBottom: 8,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  filterOptionSelected: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#0787e2',
-  },
-  filterOptionText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E293B',
-  },
-  filterOptionTextSelected: {
-    color: '#0787e2',
-    fontWeight: '700',
-  },
-  plateBadgeSmall: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    alignSelf: 'flex-start',
-    marginTop: 2,
-    marginBottom: 4,
-    borderWidth: 0.5,
-    borderColor: '#CBD5E1',
-  },
-  plateBadgeTextSmall: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#475569',
+    letterSpacing: 0.5,
   },
 });
