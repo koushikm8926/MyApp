@@ -1,13 +1,29 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Hash, Calendar, Tag, Shield, Info, ChevronRight, Search, Activity, MoreVertical, ChevronDown } from 'lucide-react-native';
+import { Car, Plus, X, Hash, Calendar, Tag, Shield, Info, ChevronRight, Search, Activity, MoreVertical, ChevronDown, Edit2 } from 'lucide-react-native';
 import { databaseService } from '../../services/databaseService';
 import { useAuthStore } from '../../store/useAuthStore';
 import LinearGradient from 'react-native-linear-gradient';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 40 }, (_, i) => (CURRENT_YEAR - i).toString());
+
+const CAR_BRANDS = [
+  { brand: 'Toyota', models: ['Camry', 'Corolla', 'RAV4', 'Highlander', 'Prius', 'Tacoma', 'Hilux', 'Land Cruiser'] },
+  { brand: 'Honda', models: ['Civic', 'Accord', 'CR-V', 'Pilot', 'Odyssey', 'Fit', 'HR-V'] },
+  { brand: 'Ford', models: ['F-150', 'Mustang', 'Explorer', 'Escape', 'Bronco', 'Ranger', 'Focus'] },
+  { brand: 'Chevrolet', models: ['Silverado', 'Equinox', 'Malibu', 'Tahoe', 'Suburban', 'Camaro', 'Colorado'] },
+  { brand: 'Nissan', models: ['Altima', 'Sentra', 'Rogue', 'Pathfinder', 'Murano', 'Frontier', 'Navara'] },
+  { brand: 'BMW', models: ['3 Series', '5 Series', 'X3', 'X5', 'M3', 'M5', '7 Series'] },
+  { brand: 'Mercedes-Benz', models: ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE', 'G-Class'] },
+  { brand: 'Audi', models: ['A3', 'A4', 'A6', 'Q3', 'Q5', 'Q7', 'Q8'] },
+  { brand: 'Tesla', models: ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck'] },
+  { brand: 'Volkswagen', models: ['Jetta', 'Passat', 'Tiguan', 'Atlas', 'Golf', 'Polo'] },
+  { brand: 'Hyundai', models: ['Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Palisade', 'Kona'] },
+  { brand: 'Kia', models: ['Sportage', 'Sorento', 'Telluride', 'Optima', 'Forte', 'Soul'] },
+  { brand: 'Other / Custom', models: [] }
+];
 
 export default function Vehicles() {
   const { user } = useAuthStore();
@@ -18,11 +34,16 @@ export default function Vehicles() {
   const insets = useSafeAreaInsets();
   
   // Form State
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
+  const [selectedMake, setSelectedMake] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [customMake, setCustomMake] = useState('');
+  const [customModel, setCustomModel] = useState('');
   const [year, setYear] = useState('');
   const [plate, setPlate] = useState('');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMakeDropdownOpen, setIsMakeDropdownOpen] = useState(false);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
   const loadVehicles = useCallback(async () => {
@@ -42,23 +63,31 @@ export default function Vehicles() {
   }, [loadVehicles]);
 
   const handleAddVehicle = async () => {
-    if (!user || !make || !model) return;
+    const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
+    const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
+
+    if (!user || !finalMake || !finalModel) return;
     
     setIsSubmitting(true);
     try {
       await databaseService.addVehicle({
         id: Math.random().toString(36).substring(7),
         userId: user.id,
-        make,
-        model,
+        make: finalMake,
+        model: finalModel,
         year,
         plate
       });
       setModalVisible(false);
-      setMake('');
-      setModel('');
+      
+      // Reset form
+      setSelectedMake('');
+      setSelectedModel('');
+      setCustomMake('');
+      setCustomModel('');
       setYear('');
       setPlate('');
+      
       loadVehicles();
     } catch (err) {
       console.error('Failed to add vehicle', err);
@@ -71,6 +100,12 @@ export default function Vehicles() {
     `${v.make} ${v.model}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.plate?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const isFormValid = () => {
+    const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
+    const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
+    return finalMake.trim().length > 0 && finalModel.trim().length > 0;
+  };
 
   const renderItem = ({ item, index }: { item: any, index: number }) => (
     <View style={styles.card}>
@@ -214,34 +249,123 @@ export default function Vehicles() {
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
               <View style={styles.form}>
-                <Text style={styles.inputLabel}>MANUFACTURER & MODEL</Text>
-                <View style={styles.inputRow}>
-                  <View style={styles.inputGroup}>
-                    <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Make"
-                      value={make}
-                      onChangeText={setMake}
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                  <View style={[styles.inputGroup, { marginLeft: 12 }]}>
-                    <Car size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Model"
-                      value={model}
-                      onChangeText={setModel}
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                </View>
+                
+                {/* BRAND DROPDOWN */}
+                <Text style={styles.inputLabel}>MANUFACTURER</Text>
+                <TouchableOpacity 
+                  style={[styles.inputGroup, isMakeDropdownOpen && styles.inputGroupOpen]} 
+                  onPress={() => {
+                    setIsMakeDropdownOpen(!isMakeDropdownOpen);
+                    setIsModelDropdownOpen(false);
+                    setIsYearDropdownOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Text style={[styles.input, !selectedMake && { color: '#94A3B8' }]}>
+                    {selectedMake || 'Select Brand'}
+                  </Text>
+                  <ChevronDown size={18} color="#94A3B8" />
+                </TouchableOpacity>
 
+                {isMakeDropdownOpen && (
+                  <View style={styles.dropdownContainer}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                      {CAR_BRANDS.map(b => (
+                        <TouchableOpacity 
+                          key={b.brand} 
+                          style={[styles.dropdownItem, selectedMake === b.brand && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setSelectedMake(b.brand);
+                            setSelectedModel('');
+                            setIsMakeDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, selectedMake === b.brand && styles.dropdownItemTextActive]}>{b.brand}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {selectedMake === 'Other / Custom' && (
+                  <View style={styles.inputGroup}>
+                    <Edit2 size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter Custom Brand Name"
+                      value={customMake}
+                      onChangeText={setCustomMake}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                )}
+
+                {/* MODEL DROPDOWN */}
+                <Text style={styles.inputLabel}>MODEL</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.inputGroup, 
+                    isModelDropdownOpen && styles.inputGroupOpen,
+                    !selectedMake && styles.inputGroupDisabled
+                  ]} 
+                  onPress={() => {
+                    if (!selectedMake) return;
+                    setIsModelDropdownOpen(!isModelDropdownOpen);
+                    setIsMakeDropdownOpen(false);
+                    setIsYearDropdownOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                  disabled={!selectedMake}
+                >
+                  <Car size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Text style={[styles.input, !selectedModel && { color: '#94A3B8' }]}>
+                    {selectedModel || 'Select Model'}
+                  </Text>
+                  <ChevronDown size={18} color="#94A3B8" />
+                </TouchableOpacity>
+
+                {isModelDropdownOpen && selectedMake && (
+                  <View style={styles.dropdownContainer}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                      {(CAR_BRANDS.find(b => b.brand === selectedMake)?.models || []).concat(['Other / Custom']).map(m => (
+                        <TouchableOpacity 
+                          key={m} 
+                          style={[styles.dropdownItem, selectedModel === m && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setSelectedModel(m);
+                            setIsModelDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, selectedModel === m && styles.dropdownItemTextActive]}>{m}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {selectedModel === 'Other / Custom' && (
+                  <View style={styles.inputGroup}>
+                    <Edit2 size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter Custom Model Name"
+                      value={customModel}
+                      onChangeText={setCustomModel}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                )}
+
+                {/* YEAR DROPDOWN */}
                 <Text style={styles.inputLabel}>MANUFACTURE YEAR</Text>
                 <TouchableOpacity 
                   style={[styles.inputGroup, isYearDropdownOpen && styles.inputGroupOpen]} 
-                  onPress={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                  onPress={() => {
+                    setIsYearDropdownOpen(!isYearDropdownOpen);
+                    setIsMakeDropdownOpen(false);
+                    setIsModelDropdownOpen(false);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
@@ -288,12 +412,12 @@ export default function Vehicles() {
                 </View>
 
                 <TouchableOpacity 
-                  style={[styles.submitButton, (!make || !model) && styles.submitButtonDisabled]}
+                  style={[styles.submitButton, !isFormValid() && styles.submitButtonDisabled]}
                   onPress={handleAddVehicle}
-                  disabled={!make || !model || isSubmitting}
+                  disabled={!isFormValid() || isSubmitting}
                 >
                   <LinearGradient
-                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
+                    colors={!isFormValid() ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
                     style={styles.submitGradient}
                   >
                     {isSubmitting ? (
@@ -540,7 +664,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-  // Modal Styles (Modernized)
+  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.4)',
@@ -602,12 +726,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginTop: 16,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   inputGroup: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
@@ -616,7 +735,11 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
     height: 56,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  inputGroupDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F1F5F9',
   },
   inputIcon: {
     marginRight: 12,
