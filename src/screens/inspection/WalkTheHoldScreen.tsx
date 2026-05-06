@@ -1,108 +1,137 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, ChevronRight, Container, CheckCircle2, ShieldCheck, Box } from 'lucide-react-native';
-import { LinearGradient } from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ArrowLeft } from 'lucide-react-native';
 
-const { width } = Dimensions.get('window');
-
-const INITIAL_HOLDS = [
-  { id: 'hold-1', title: 'Hold No. 1', status: 'pending', description: 'Forward cargo hold' },
-  { id: 'hold-2', title: 'Hold No. 2', status: 'pending', description: 'Mid-forward cargo hold' },
-  { id: 'hold-3', title: 'Hold No. 3', status: 'pending', description: 'Center cargo hold' },
-  { id: 'hold-4', title: 'Hold No. 4', status: 'pending', description: 'Mid-aft cargo hold' },
-  { id: 'hold-5', title: 'Hold No. 5', status: 'pending', description: 'Aft cargo hold' },
+const holdsData = [
+  { id: 1, location: 'Forward cargo hold', status: 'in_progress', title: 'Hold No. 1' },
+  { id: 2, location: 'Mid-forward cargo hold', status: 'not_started', title: 'Hold No. 2' },
+  { id: 3, location: 'Center cargo hold', status: 'not_started', title: 'Hold No. 3' },
+  { id: 4, location: 'Mid-aft cargo hold', status: 'not_started', title: 'Hold No. 4' },
+  { id: 5, location: 'Aft cargo hold', status: 'not_started', title: 'Hold No. 5' },
 ];
 
 export default function WalkTheHoldScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   
-  const [holds, setHolds] = useState(INITIAL_HOLDS);
+  const total = holdsData.length;
+  const completed = holdsData.filter(h => h.status === 'completed').length;
+  const progressPercent = Math.round((completed / total) * 100);
 
-  const completedCount = holds.filter(h => h.status === 'completed').length;
-  const totalCount = holds.length;
-  const progressPercentage = Math.round((completedCount / totalCount) * 100);
+  const activeHold = holdsData.find(h => h.status === 'in_progress');
+
+  const getButtonLabel = (status: string) => {
+    switch (status) {
+      case 'in_progress': return 'Continue';
+      case 'completed': return 'Review';
+      default: return 'Start';
+    }
+  };
+
+  const getCardStyle = (status: string) => {
+    switch (status) {
+      case 'in_progress': return styles.cardActive;
+      case 'completed': return styles.cardCompleted;
+      default: return styles.card;
+    }
+  };
+
+  const handleHoldPress = (hold: any) => {
+    navigation.navigate('HoldDetails', { 
+      holdId: `hold-${hold.id}`, 
+      title: hold.title 
+    });
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#4F46E5', '#6366F1']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      <StatusBar barStyle="dark-content" />
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
       >
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Hold Management</Text>
-        <View style={{ width: 40 }} />
-      </LinearGradient>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <View>
-              <Text style={styles.progressTitle}>Global Progress</Text>
-              <Text style={styles.progressSubtitle}>{completedCount} of {totalCount} Holds Validated</Text>
-            </View>
-            <View style={styles.percentageBadge}>
-              <Text style={styles.percentageText}>{progressPercentage}%</Text>
-            </View>
-          </View>
-          
-          <View style={styles.progressBarContainer}>
-            <View 
-              style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} 
-            />
+        {/* HEADER */}
+        <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <ArrowLeft size={24} color="#111827" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Cargo Inspection</Text>
+        </View>
+
+        {/* PROGRESS */}
+        <View style={styles.progressCard}>
+          <Text style={styles.progressText}>{progressPercent}% Complete</Text>
+          <Text style={styles.progressSub}>
+            {total - completed} holds remaining
+          </Text>
+
+          <View style={styles.dots}>
+            {holdsData.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index < completed ? styles.dotActive : styles.dotInactive,
+                ]}
+              />
+            ))}
           </View>
         </View>
 
-        <View style={styles.listContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Cargo Holds</Text>
-            <ShieldCheck size={20} color="#4F46E5" />
-          </View>
-          
-          {holds.map((item, index) => {
-            const isCompleted = item.status === 'completed';
-            
-            return (
-              <TouchableOpacity 
-                key={item.id}
-                style={[styles.cardContainer, isCompleted && styles.cardCompleted]} 
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('HoldDetails', { holdId: item.id, title: item.title })}
-              >
-                <View style={styles.card}>
-                  <View style={[styles.iconContainer, isCompleted && styles.iconCompleted]}>
-                    {isCompleted ? (
-                      <CheckCircle2 size={24} color="#10B981" />
-                    ) : (
-                      <Box size={24} color="#4F46E5" />
-                    )}
-                  </View>
-                  
-                  <View style={styles.cardContent}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDescription}>{item.description}</Text>
-                  </View>
-                  
-                  <View style={styles.statusAction}>
-                    <Text style={[styles.statusText, isCompleted ? styles.statusCompleted : styles.statusPending]}>
-                      {isCompleted ? 'Done' : 'Inspect'}
-                    </Text>
-                    <ChevronRight size={18} color={isCompleted ? "#10B981" : "#6366F1"} />
-                  </View>
+        {/* CONTINUE CARD */}
+        {activeHold && (
+          <TouchableOpacity 
+            style={styles.continueCard}
+            onPress={() => handleHoldPress(activeHold)}
+          >
+            <Text style={styles.continueTitle}>Continue Inspection</Text>
+            <Text style={styles.continueSub}>
+              Resume Hold {activeHold.id}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* HOLD LIST */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Cargo Holds</Text>
+
+          {holdsData.map((hold) => (
+            <View key={hold.id} style={[styles.cardBase, getCardStyle(hold.status)]}>
+              <View style={styles.row}>
+                
+                <View>
+                  <Text style={styles.holdTitle}>Hold {hold.id}</Text>
+                  <Text style={styles.holdSub}>{hold.location}</Text>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
+
+                <TouchableOpacity 
+                  style={styles.button}
+                  onPress={() => handleHoldPress(hold)}
+                >
+                  <Text style={styles.buttonText}>
+                    {getButtonLabel(hold.status)}
+                  </Text>
+                </TouchableOpacity>
+
+              </View>
+            </View>
+          ))}
         </View>
+
       </ScrollView>
     </View>
   );
@@ -111,171 +140,153 @@ export default function WalkTheHoldScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F5F7FB',
   },
+
   header: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
   },
+
   backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginRight: 12,
+    padding: 4,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  progressSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 24,
-    padding: 24,
-    borderRadius: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
-    elevation: 3,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  progressTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  progressSubtitle: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  percentageBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  percentageText: {
-    color: '#4F46E5',
-    fontWeight: '900',
-    fontSize: 16,
-  },
-  progressBarContainer: {
-    height: 10,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#4F46E5',
-    borderRadius: 5,
-  },
-  listContainer: {
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  sectionTitle: {
+
+  title: {
     fontSize: 22,
-    fontWeight: '900',
-    color: '#1E293B',
+    fontWeight: '700',
+    color: '#111827',
   },
-  cardContainer: {
-    marginBottom: 12,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+
+  progressCard: {
+    backgroundColor: '#fff',
+    margin: 16,
+    padding: 20,
+    borderRadius: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
-  cardCompleted: {
-    opacity: 0.9,
+
+  progressText: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#111827',
   },
-  card: {
+
+  progressSub: {
+    marginTop: 4,
+    color: '#6B7280',
+  },
+
+  dots: {
     flexDirection: 'row',
-    alignItems: 'center',
+    marginTop: 12,
+  },
+
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 6,
+  },
+
+  dotActive: {
+    backgroundColor: '#4F46E5',
+  },
+
+  dotInactive: {
+    backgroundColor: '#E5E7EB',
+  },
+
+  continueCard: {
+    backgroundColor: '#4F46E5',
+    marginHorizontal: 16,
+    padding: 18,
+    borderRadius: 16,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+
+  continueTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+
+  continueSub: {
+    color: '#E0E7FF',
+    marginTop: 4,
+  },
+
+  section: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#111827',
+  },
+
+  cardBase: {
+    borderRadius: 16,
     padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+
+  card: {},
+
+  cardActive: {
+    borderWidth: 1,
+    borderColor: '#4F46E5',
+    backgroundColor: '#F0F3FF',
   },
-  iconCompleted: {
-    backgroundColor: '#ECFDF5',
+
+  cardCompleted: {
+    opacity: 0.5,
   },
-  cardContent: {
-    flex: 1,
-    marginLeft: 16,
-    marginRight: 8,
-  },
-  cardTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
-    lineHeight: 18,
-  },
-  statusAction: {
+
+  row: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
+  },
+
+  holdTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+
+  holdSub: {
+    color: '#6B7280',
+    marginTop: 2,
+  },
+
+  button: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 14,
+    borderRadius: 10,
   },
-  statusText: {
-    fontSize: 13,
-    fontWeight: '800',
-    marginRight: 4,
-  },
-  statusPending: {
-    color: '#6366F1',
-  },
-  statusCompleted: {
-    color: '#10B981',
+
+  buttonText: {
+    color: '#4F46E5',
+    fontWeight: '600',
   },
 });
+
