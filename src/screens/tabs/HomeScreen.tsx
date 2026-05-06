@@ -16,30 +16,7 @@ import {
   StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { 
-  Camera, 
-  ClipboardCheck, 
-  Ship, 
-  Layers, 
-  ChevronRight, 
-  CheckCircle2, 
-  Car, 
-  Lock, 
-  X, 
-  Plus, 
-  Search, 
-  Filter, 
-  Tag, 
-  Info, 
-  Hash, 
-  Calendar,
-  Clock,
-  TrendingUp,
-  AlertCircle,
-  MoreVertical,
-  Activity,
-  Sparkles
-} from 'lucide-react-native';
+import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, Lock, TrendingUp, AlertCircle, MoreVertical } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -47,6 +24,25 @@ import { databaseService } from '../../services/databaseService';
 import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 40 }, (_, i) => (CURRENT_YEAR - i).toString());
+
+const CAR_BRANDS = [
+  { brand: 'Toyota', models: ['Camry', 'Corolla', 'RAV4', 'Highlander', 'Prius', 'Tacoma', 'Hilux', 'Land Cruiser'] },
+  { brand: 'Honda', models: ['Civic', 'Accord', 'CR-V', 'Pilot', 'Odyssey', 'Fit', 'HR-V'] },
+  { brand: 'Ford', models: ['F-150', 'Mustang', 'Explorer', 'Escape', 'Bronco', 'Ranger', 'Focus'] },
+  { brand: 'Chevrolet', models: ['Silverado', 'Equinox', 'Malibu', 'Tahoe', 'Suburban', 'Camaro', 'Colorado'] },
+  { brand: 'Nissan', models: ['Altima', 'Sentra', 'Rogue', 'Pathfinder', 'Murano', 'Frontier', 'Navara'] },
+  { brand: 'BMW', models: ['3 Series', '5 Series', 'X3', 'X5', 'M3', 'M5', '7 Series'] },
+  { brand: 'Mercedes-Benz', models: ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE', 'G-Class'] },
+  { brand: 'Audi', models: ['A3', 'A4', 'A6', 'Q3', 'Q5', 'Q7', 'Q8'] },
+  { brand: 'Tesla', models: ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck'] },
+  { brand: 'Volkswagen', models: ['Jetta', 'Passat', 'Tiguan', 'Atlas', 'Golf', 'Polo'] },
+  { brand: 'Hyundai', models: ['Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Palisade', 'Kona'] },
+  { brand: 'Kia', models: ['Sportage', 'Sorento', 'Telluride', 'Optima', 'Forte', 'Soul'] },
+  { brand: 'Other / Custom', models: [] }
+];
 
 export default function Home() {
   const user = useAuthStore((state) => state.user);
@@ -62,11 +58,17 @@ export default function Home() {
   const [sortBy, setSortBy] = useState('recent');
 
   const [isAddVehicleVisible, setAddVehicleVisible] = useState(false);
-  const [make, setMake] = useState('');
-  const [model, setModel] = useState('');
+  const [selectedMake, setSelectedMake] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [customMake, setCustomMake] = useState('');
+  const [customModel, setCustomModel] = useState('');
   const [year, setYear] = useState('');
   const [plate, setPlate] = useState('');
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMakeDropdownOpen, setIsMakeDropdownOpen] = useState(false);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -85,21 +87,26 @@ export default function Home() {
   };
 
   const handleAddVehicle = async () => {
-    if (!user || !make || !model) return;
+    const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
+    const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
+
+    if (!user || !finalMake || !finalModel) return;
     
     setIsSubmitting(true);
     try {
       await databaseService.addVehicle({
         id: Math.random().toString(36).substring(7),
         userId: user.id,
-        make,
-        model,
+        make: finalMake,
+        model: finalModel,
         year,
         plate
       });
       setAddVehicleVisible(false);
-      setMake('');
-      setModel('');
+      setSelectedMake('');
+      setSelectedModel('');
+      setCustomMake('');
+      setCustomModel('');
       setYear('');
       setPlate('');
       if (user) loadVehicles(user.id);
@@ -108,6 +115,12 @@ export default function Home() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const isFormValid = () => {
+    const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
+    const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
+    return finalMake.trim().length > 0 && finalModel.trim().length > 0;
   };
 
   const filteredVehicles = vehicles.filter(v => 
@@ -442,53 +455,161 @@ export default function Home() {
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
               <View style={styles.form}>
-                <Text style={styles.inputLabel}>MANUFACTURER & MODEL</Text>
-                <View style={styles.inputRow}>
+                
+                {/* BRAND DROPDOWN */}
+                <Text style={styles.inputLabel}>MANUFACTURER</Text>
+                <TouchableOpacity 
+                  style={[styles.inputGroup, isMakeDropdownOpen && styles.inputGroupOpen]} 
+                  onPress={() => {
+                    setIsMakeDropdownOpen(!isMakeDropdownOpen);
+                    setIsModelDropdownOpen(false);
+                    setIsYearDropdownOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Text style={[styles.input, !selectedMake && { color: '#94A3B8' }]}>
+                    {selectedMake || 'Select Brand'}
+                  </Text>
+                  <ChevronDown size={18} color="#94A3B8" />
+                </TouchableOpacity>
+
+                {isMakeDropdownOpen && (
+                  <View style={styles.dropdownContainer}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                      {CAR_BRANDS.map(b => (
+                        <TouchableOpacity 
+                          key={b.brand} 
+                          style={[styles.dropdownItem, selectedMake === b.brand && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setSelectedMake(b.brand);
+                            setSelectedModel('');
+                            setIsMakeDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, selectedMake === b.brand && styles.dropdownItemTextActive]}>{b.brand}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {selectedMake === 'Other / Custom' && (
                   <View style={styles.inputGroup}>
-                    <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <Edit2 size={18} color="#94A3B8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="Make"
-                      value={make}
-                      onChangeText={setMake}
+                      placeholder="Enter Custom Brand Name"
+                      value={customMake}
+                      onChangeText={setCustomMake}
                       placeholderTextColor="#94A3B8"
                     />
                   </View>
-                  <View style={[styles.inputGroup, { marginLeft: 12 }]}>
-                    <Car size={18} color="#94A3B8" style={styles.inputIcon} />
+                )}
+
+                {/* MODEL DROPDOWN */}
+                <Text style={styles.inputLabel}>MODEL</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.inputGroup, 
+                    isModelDropdownOpen && styles.inputGroupOpen,
+                    !selectedMake && styles.inputGroupDisabled
+                  ]} 
+                  onPress={() => {
+                    if (!selectedMake) return;
+                    setIsModelDropdownOpen(!isModelDropdownOpen);
+                    setIsMakeDropdownOpen(false);
+                    setIsYearDropdownOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                  disabled={!selectedMake}
+                >
+                  <Car size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Text style={[styles.input, !selectedModel && { color: '#94A3B8' }]}>
+                    {selectedModel || 'Select Model'}
+                  </Text>
+                  <ChevronDown size={18} color="#94A3B8" />
+                </TouchableOpacity>
+
+                {isModelDropdownOpen && selectedMake && (
+                  <View style={styles.dropdownContainer}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                      {(CAR_BRANDS.find(b => b.brand === selectedMake)?.models || []).concat(['Other / Custom']).map(m => (
+                        <TouchableOpacity 
+                          key={m} 
+                          style={[styles.dropdownItem, selectedModel === m && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setSelectedModel(m);
+                            setIsModelDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, selectedModel === m && styles.dropdownItemTextActive]}>{m}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                {selectedModel === 'Other / Custom' && (
+                  <View style={styles.inputGroup}>
+                    <Edit2 size={18} color="#94A3B8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
-                      placeholder="Model"
-                      value={model}
-                      onChangeText={setModel}
+                      placeholder="Enter Custom Model Name"
+                      value={customModel}
+                      onChangeText={setCustomModel}
                       placeholderTextColor="#94A3B8"
                     />
                   </View>
-                </View>
+                )}
+
+                {/* YEAR DROPDOWN */}
+                <Text style={styles.inputLabel}>MANUFACTURE YEAR</Text>
+                <TouchableOpacity 
+                  style={[styles.inputGroup, isYearDropdownOpen && styles.inputGroupOpen]} 
+                  onPress={() => {
+                    setIsYearDropdownOpen(!isYearDropdownOpen);
+                    setIsMakeDropdownOpen(false);
+                    setIsModelDropdownOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Text style={[styles.input, !year && { color: '#94A3B8' }]}>
+                    {year || 'Select Year'}
+                  </Text>
+                  <ChevronDown size={18} color="#94A3B8" />
+                </TouchableOpacity>
+
+                {isYearDropdownOpen && (
+                  <View style={styles.dropdownContainer}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                      {YEARS.map(y => (
+                        <TouchableOpacity 
+                          key={y} 
+                          style={[styles.dropdownItem, year === y && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setYear(y);
+                            setIsYearDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, year === y && styles.dropdownItemTextActive]}>{y}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
 
                 <Text style={styles.inputLabel}>IDENTIFICATION</Text>
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputGroup, { flex: 0.4 }]}>
-                    <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Year"
-                      value={year}
-                      onChangeText={setYear}
-                      keyboardType="numeric"
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                  <View style={[styles.inputGroup, { flex: 0.6, marginLeft: 12 }]}>
-                    <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Plate Number"
-                      value={plate}
-                      onChangeText={setPlate}
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
+                <View style={styles.inputGroup}>
+                  <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Plate Number"
+                    value={plate}
+                    onChangeText={setPlate}
+                    placeholderTextColor="#94A3B8"
+                  />
                 </View>
 
                 <View style={styles.infoBox}>
@@ -497,12 +618,12 @@ export default function Home() {
                 </View>
 
                 <TouchableOpacity 
-                  style={[styles.submitButton, (!make || !model) && styles.submitButtonDisabled]}
+                  style={[styles.submitButton, !isFormValid() && styles.submitButtonDisabled]}
                   onPress={handleAddVehicle}
-                  disabled={!make || !model || isSubmitting}
+                  disabled={!isFormValid() || isSubmitting}
                 >
                   <LinearGradient
-                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
+                    colors={!isFormValid() ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
                     style={styles.submitGradient}
                   >
                     {isSubmitting ? (
@@ -1039,7 +1160,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   inputGroup: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
@@ -1048,7 +1168,11 @@ const styles = StyleSheet.create({
     borderColor: '#F1F5F9',
     height: 56,
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  inputGroupDisabled: {
+    opacity: 0.5,
+    backgroundColor: '#F1F5F9',
   },
   inputIcon: {
     marginRight: 12,
@@ -1058,6 +1182,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#0F172A',
+  },
+  inputGroupOpen: {
+    borderColor: '#3B82F6',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    marginBottom: 0,
+  },
+  dropdownContainer: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    height: 150,
+  },
+  dropdownScroll: {
+    flex: 1,
+  },
+  dropdownItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#EEF2FF',
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  dropdownItemTextActive: {
+    color: '#3B82F6',
+    fontWeight: '800',
   },
   infoBox: {
     flexDirection: 'row',

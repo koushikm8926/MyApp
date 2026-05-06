@@ -1,0 +1,9 @@
+can you please improve the ui for Vessle inspection screen , that has five option hold 1, hold 2, hold 3 , hold4, hold 5 and each hold ahs 5 mandtry shots but right now only two image captureing option is showing make it 5 and  
+dont chenge any function or logic i wnat only the UI improvemnt, improve the all over screen ui UX aslo , as this screens kind of complex
+
+
+
+
+
+i want the if the user opening up a camera model to capture the image 
+it should have a image capturing button , a proper retengular frem, with freaming rate , its stablity , if the iamge is blur or not thease features , and the captureing iage should update the box with the image 
