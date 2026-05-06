@@ -101,11 +101,13 @@ export default function CustomCameraModal({ visible, onClose, onPictureTaken, gu
       <View style={styles.container}>
         <Camera
           ref={cameraRef}
-          style={styles.camera}
+          style={StyleSheet.absoluteFill}
           device={device}
           isActive={visible}
           photo={true}
-        >
+        />
+        
+        <View style={StyleSheet.absoluteFill}>
           <CameraOverlay guideText={guideText || 'CAPTURE PHOTO'} isStable={isStable} />
 
           <TouchableOpacity
@@ -130,7 +132,7 @@ export default function CustomCameraModal({ visible, onClose, onPictureTaken, gu
               </View>
             </TouchableOpacity>
           </View>
-        </Camera>
+        </View>
       </View>
     </Modal>
   );

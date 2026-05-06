@@ -108,13 +108,7 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
             </View>
           </View>
 
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.shotsScroll}
-            snapToInterval={width * 0.45 + 16}
-            decelerationRate="fast"
-          >
+          <View style={styles.shotsGrid}>
             {shots.map((shot) => (
               <TouchableOpacity 
                 key={shot.id}
@@ -130,7 +124,7 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
                       style={styles.shotImageOverlay}
                     >
                       <View style={styles.shotStatusRow}>
-                        <CheckCircle2 size={16} color="#10B981" fill="#FFFFFF" />
+                        <CheckCircle2 size={14} color="#10B981" fill="#FFFFFF" />
                         <Text style={styles.shotStatusText}>Captured</Text>
                       </View>
                     </LinearGradient>
@@ -138,7 +132,7 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
                 ) : (
                   <View style={styles.shotEmptyState}>
                     <View style={styles.cameraIconBg}>
-                      <Camera size={24} color="#8B5CF6" />
+                      <Camera size={20} color="#3B82F6" />
                     </View>
                     <Text style={styles.shotLabel}>{shot.label}</Text>
                     <View style={styles.tapToCapture}>
@@ -148,7 +142,7 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
                 )}
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Zones Section */}
@@ -250,7 +244,7 @@ export default function HoldDetailsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#4F46E5', '#6366F1']}
+        colors={['#0F172A', '#1E293B']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
@@ -259,7 +253,7 @@ export default function HoldDetailsScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <ArrowLeft size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Vessel Inspection</Text>
+          <Text style={styles.headerTitle}>Hold Inspection</Text>
           <TouchableOpacity style={styles.infoButton}>
             <Info size={22} color="#FFFFFF" />
           </TouchableOpacity>
@@ -402,16 +396,18 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   holdInfoCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 24,
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.03,
     shadowRadius: 15,
     elevation: 4,
   },
@@ -420,36 +416,36 @@ const styles = StyleSheet.create({
   },
   holdSubtitle: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#6366F1',
+    fontWeight: '900',
+    color: '#64748B',
     textTransform: 'uppercase',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 1,
   },
   holdTitleDisplay: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#1E293B',
+    color: '#0F172A',
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   holdDescriptionDisplay: {
     fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
+    color: '#94A3B8',
+    fontWeight: '600',
   },
   holdProgressBadge: {
     width: 64,
     height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F5F3FF',
-    borderWidth: 2,
-    borderColor: '#E0E7FF',
+    borderRadius: 20,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   holdProgressText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '900',
-    color: '#4F46E5',
+    color: '#3B82F6',
   },
   section: {
     marginBottom: 32,
@@ -462,87 +458,89 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    color: '#1E293B',
+    color: '#0F172A',
     letterSpacing: -0.5,
   },
   sectionSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#94A3B8',
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 4,
   },
   shotCounter: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E7FF',
   },
   shotCounterText: {
-    color: '#4F46E5',
-    fontWeight: '800',
+    color: '#3B82F6',
+    fontWeight: '900',
     fontSize: 14,
   },
-  shotsScroll: {
-    paddingLeft: 20,
-    paddingRight: 10,
-    paddingBottom: 10,
+  shotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
   },
   shotCard: {
-    width: width * 0.45,
-    height: 200,
+    width: (width - 64) / 2, // 24px padding on each side, 16px gap
+    height: 180,
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    marginRight: 16,
+    borderRadius: 24,
+    marginBottom: 16,
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: '#F1F5F9',
     borderStyle: 'dashed',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
   },
   shotCardCompleted: {
     borderStyle: 'solid',
     borderColor: '#10B981',
-    borderWidth: 3,
+    borderWidth: 2,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   shotEmptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+    backgroundColor: '#F8FAFC',
   },
   cameraIconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 20,
-    backgroundColor: '#F5F3FF',
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   shotLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#0F172A',
     textAlign: 'center',
     marginBottom: 8,
   },
   tapToCapture: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
+    backgroundColor: '#FFF',
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   tapToCaptureText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
     color: '#64748B',
     textTransform: 'uppercase',
   },
@@ -566,36 +564,36 @@ const styles = StyleSheet.create({
   shotStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
   shotStatusText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
-    marginLeft: 6,
+    marginLeft: 4,
   },
   zonesList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   zoneCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    padding: 18,
+    padding: 16,
     borderRadius: 24,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
   },
   zoneIconContainer: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: 16,
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -611,29 +609,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   zoneTitle: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    color: '#1E293B',
+    color: '#0F172A',
     marginRight: 8,
   },
   zonePercent: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#4F46E5',
+    color: '#3B82F6',
   },
   zoneProgressBarOuter: {
-    height: 8,
+    height: 6,
     backgroundColor: '#F1F5F9',
-    borderRadius: 4,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   zoneProgressBarInner: {
     height: '100%',
-    backgroundColor: '#6366F1',
-    borderRadius: 4,
+    backgroundColor: '#3B82F6',
+    borderRadius: 3,
   },
 });
