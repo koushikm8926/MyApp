@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Hash, Calendar, Tag, Shield, Info, ChevronRight, Search } from 'lucide-react-native';
+import { Car, Plus, X, Hash, Calendar, Tag, Shield, Info, ChevronRight, Search, Activity, MoreVertical } from 'lucide-react-native';
 import { databaseService } from '../../services/databaseService';
 import { useAuthStore } from '../../store/useAuthStore';
-import { LinearGradient } from 'react-native-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 
 export default function Vehicles() {
   const { user } = useAuthStore();
@@ -69,61 +69,79 @@ export default function Vehicles() {
   );
 
   const renderItem = ({ item, index }: { item: any, index: number }) => (
-    <View
-      style={styles.card}
-    >
+    <View style={styles.card}>
       <View style={styles.cardMain}>
         <View style={styles.iconBox}>
-          <Car size={28} color="#0787e2" />
+          <Car size={26} color="#3B82F6" />
         </View>
         <View style={styles.vehicleDetails}>
           <Text style={styles.vehicleName}>{item.make} {item.model}</Text>
           <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Calendar size={12} color="#94A3B8" />
-              <Text style={styles.metaText}>{item.year || 'N/A'}</Text>
+            <View style={styles.metaBadge}>
+              <Calendar size={12} color="#64748B" />
+              <Text style={styles.metaBadgeText}>{item.year || 'N/A'}</Text>
             </View>
-            <View style={styles.metaDivider} />
-            <View style={styles.metaItem}>
-              <Hash size={12} color="#94A3B8" />
-              <Text style={styles.metaText}>{item.plate || 'No Plate'}</Text>
+            <View style={styles.metaBadge}>
+              <Hash size={12} color="#64748B" />
+              <Text style={styles.metaBadgeText}>{item.plate || 'No Plate'}</Text>
             </View>
           </View>
         </View>
         <TouchableOpacity style={styles.detailsBtn}>
-          <ChevronRight size={20} color="#CBD5E1" />
+          <MoreVertical size={20} color="#CBD5E1" />
         </TouchableOpacity>
       </View>
       
-      <View style={styles.cardBadge}>
-        <Shield size={12} color="#10B981" />
-        <Text style={styles.badgeLabel}>VERIFIED</Text>
+      <View style={styles.cardFooter}>
+        <View style={styles.statusPill}>
+          <Shield size={12} color="#10B981" />
+          <Text style={styles.statusPillText}>VERIFIED</Text>
+        </View>
+        <TouchableOpacity style={styles.actionBtn}>
+          <Text style={styles.actionBtnText}>View Details</Text>
+          <ChevronRight size={16} color="#3B82F6" />
+        </TouchableOpacity>
       </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      
+      {/* Modern Header */}
       <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-        <Text style={styles.headerTitle}>My Garage</Text>
-        <View style={styles.searchBar}>
-          <Search size={20} color="#94A3B8" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search make, model or plate..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#94A3B8"
-          />
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>Fleet</Text>
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>{vehicles.length}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Search size={20} color="#94A3B8" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search make, model, or plate..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#94A3B8"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <X size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
-      {/* Content */}
+      {/* Content Area */}
       <View style={styles.content}>
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color="#0787e2" />
+            <ActivityIndicator size="large" color="#3B82F6" />
           </View>
         ) : (
           <FlatList
@@ -135,15 +153,15 @@ export default function Vehicles() {
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <View style={styles.emptyIconBox}>
-                  <Car size={64} color="#CBD5E1" />
+                  <Car size={48} color="#94A3B8" />
                 </View>
-                <Text style={styles.emptyTitle}>Your garage is empty</Text>
-                <Text style={styles.emptySubtitle}>Add your first vehicle to start tracking inspections and maintenance.</Text>
+                <Text style={styles.emptyTitle}>Garage is empty</Text>
+                <Text style={styles.emptySubtitle}>No vehicles have been registered yet.</Text>
                 <TouchableOpacity 
                   style={styles.emptyAddBtn}
                   onPress={() => setModalVisible(true)}
                 >
-                  <Text style={styles.emptyAddBtnText}>Add a Vehicle</Text>
+                  <Text style={styles.emptyAddBtnText}>Register First Vehicle</Text>
                 </TouchableOpacity>
               </View>
             }
@@ -151,20 +169,23 @@ export default function Vehicles() {
         )}
       </View>
 
-      {/* FAB */}
+      {/* Floating Action Button */}
       <TouchableOpacity 
         style={styles.fab}
         onPress={() => setModalVisible(true)}
+        activeOpacity={0.9}
       >
         <LinearGradient
-          colors={['#0787e2', '#0787e2']}
+          colors={['#1E293B', '#0F172A']}
           style={styles.fabGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
         >
-          <Plus size={32} color="#fff" />
+          <Plus size={28} color="#FFF" />
         </LinearGradient>
       </TouchableOpacity>
 
-      {/* Add Vehicle Modal */}
+      {/* Modern Add Vehicle Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -175,12 +196,12 @@ export default function Vehicles() {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom || 24 }]}>
             <View style={styles.modalIndicator} />
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Add New Vehicle</Text>
-                <Text style={styles.modalSubtitle}>Enter details to register vehicle</Text>
+                <Text style={styles.modalTitle}>Register Vehicle</Text>
+                <Text style={styles.modalSubtitle}>Enter details for the permanent record</Text>
               </View>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                 <X size={24} color="#64748B" />
@@ -189,31 +210,33 @@ export default function Vehicles() {
 
             <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
               <View style={styles.form}>
-                <Text style={styles.inputLabel}>BASIC INFO</Text>
-                <View style={styles.inputGroup}>
-                  <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Make (e.g. Toyota)"
-                    value={make}
-                    onChangeText={setMake}
-                    placeholderTextColor="#94A3B8"
-                  />
+                <Text style={styles.inputLabel}>MANUFACTURER & MODEL</Text>
+                <View style={styles.inputRow}>
+                  <View style={styles.inputGroup}>
+                    <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Make"
+                      value={make}
+                      onChangeText={setMake}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
+                  <View style={[styles.inputGroup, { marginLeft: 12 }]}>
+                    <Car size={18} color="#94A3B8" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Model"
+                      value={model}
+                      onChangeText={setModel}
+                      placeholderTextColor="#94A3B8"
+                    />
+                  </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Car size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Model (e.g. Camry)"
-                    value={model}
-                    onChangeText={setModel}
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-
-                <View style={styles.row}>
-                  <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+                <Text style={styles.inputLabel}>IDENTIFICATION</Text>
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputGroup, { flex: 0.4 }]}>
                     <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
@@ -224,7 +247,7 @@ export default function Vehicles() {
                       placeholderTextColor="#94A3B8"
                     />
                   </View>
-                  <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                  <View style={[styles.inputGroup, { flex: 0.6, marginLeft: 12 }]}>
                     <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
@@ -237,8 +260,8 @@ export default function Vehicles() {
                 </View>
 
                 <View style={styles.infoBox}>
-                  <Info size={16} color="#0787e2" />
-                  <Text style={styles.infoText}>Adding a vehicle allows you to track its entire inspection history in one place.</Text>
+                  <Info size={16} color="#3B82F6" />
+                  <Text style={styles.infoText}>Accurate details ensure compliance with international maritime inspection standards.</Text>
                 </View>
 
                 <TouchableOpacity 
@@ -247,13 +270,13 @@ export default function Vehicles() {
                   disabled={!make || !model || isSubmitting}
                 >
                   <LinearGradient
-                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#1E293B', '#334155']}
+                    colors={(!make || !model) ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
                     style={styles.submitGradient}
                   >
                     {isSubmitting ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={styles.submitButtonText}>Register Vehicle</Text>
+                      <Text style={styles.submitButtonText}>Confirm Registration</Text>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
@@ -273,66 +296,88 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
+    backgroundColor: '#F8FAFC',
+    zIndex: 10,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 20,
-  },
-  searchBar: {
-    height: 48,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 12,
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -1,
+  },
+  countBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  countBadgeText: {
+    color: '#3B82F6',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  searchContainer: {
+    marginBottom: 16,
+  },
+  searchBar: {
+    height: 56,
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: 15,
+    marginLeft: 12,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#0F172A',
   },
   content: {
     flex: 1,
   },
   list: {
-    padding: 24,
-    paddingBottom: 100,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 140, // Increased to account for FAB and floating tab bar
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: '#FFF',
+    borderRadius: 28,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.03,
     shadowRadius: 15,
-    elevation: 4,
+    elevation: 3,
   },
   cardMain: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
   },
   iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    backgroundColor: '#EEF2FF',
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: '#EFF6FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -343,64 +388,78 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 6,
+    color: '#0F172A',
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  metaItem: {
+  metaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 8,
   },
-  metaText: {
+  metaBadgeText: {
     fontSize: 12,
-    color: '#94A3B8',
-    marginLeft: 4,
-    fontWeight: '600',
-  },
-  metaDivider: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#CBD5E1',
-    marginHorizontal: 10,
+    color: '#64748B',
+    marginLeft: 6,
+    fontWeight: '700',
   },
   detailsBtn: {
     padding: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
   },
-  cardBadge: {
-    position: 'absolute',
-    top: -8,
-    right: 20,
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+    paddingTop: 16,
+  },
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  badgeLabel: {
-    fontSize: 10,
+  statusPillText: {
+    fontSize: 11,
     fontWeight: '900',
     color: '#10B981',
-    marginLeft: 4,
+    marginLeft: 6,
     letterSpacing: 0.5,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionBtnText: {
+    color: '#3B82F6',
+    fontWeight: '800',
+    fontSize: 14,
+    marginRight: 4,
   },
   fab: {
     position: 'absolute',
-    bottom: 30,
-    right: 30,
+    bottom: 100, // Adjusted to sit nicely above the floating tab bar
+    right: 24,
     width: 64,
     height: 64,
     borderRadius: 32,
-    shadowColor: '#0787e2',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
     elevation: 10,
   },
   fabGradient: {
@@ -410,134 +469,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    padding: 24,
-    paddingTop: 12,
-    maxHeight: '85%',
-  },
-  modalIndicator: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 32,
-    paddingHorizontal: 8,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1E293B',
-    letterSpacing: -0.5,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 4,
-  },
-  closeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  formScroll: {
-    paddingHorizontal: 8,
-  },
-  form: {
-    width: '100%',
-    paddingBottom: 40,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#94A3B8',
-    marginBottom: 12,
-    letterSpacing: 1,
-  },
-  inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-    height: 64,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  row: {
-    flexDirection: 'row',
-  },
-  inputIcon: {
-    marginRight: 16,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1E293B',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#EEF2FF',
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 8,
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#0787e2',
-    fontWeight: '600',
-    marginLeft: 12,
-    lineHeight: 18,
-  },
-  submitButton: {
-    height: 64,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  submitGradient: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '800',
-  },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -545,48 +476,173 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingHorizontal: 40,
+    justifyContent: 'center',
     paddingTop: 80,
   },
   emptyIconBox: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#fff',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
     borderWidth: 2,
     borderStyle: 'dashed',
     borderColor: '#E2E8F0',
   },
   emptyTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
   },
   emptySubtitle: {
-    fontSize: 15,
-    color: '#64748B',
+    fontSize: 14,
+    color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
+    fontWeight: '500',
+    paddingHorizontal: 20,
   },
   emptyAddBtn: {
-    backgroundColor: '#0787e2',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     borderRadius: 16,
-    shadowColor: '#0787e2',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 6,
   },
   emptyAddBtnText: {
-    color: '#fff',
+    color: '#3B82F6',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  // Modal Styles (Modernized)
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingTop: 12,
+    paddingHorizontal: 24,
+    maxHeight: '85%',
+  },
+  modalIndicator: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formScroll: {
+    marginTop: 8,
+  },
+  form: {
+    paddingBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#64748B',
+    marginBottom: 10,
+    letterSpacing: 1,
+    marginTop: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  inputGroup: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    height: 56,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  inputIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#EFF6FF',
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  infoText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 13,
+    color: '#1E40AF',
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  submitButton: {
+    marginTop: 32,
+    height: 60,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitButtonDisabled: {
+    opacity: 0.5,
+  },
+  submitGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: '#FFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
