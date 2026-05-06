@@ -242,10 +242,9 @@ export default function Home() {
             </TouchableOpacity>
           </View>
           
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modulesScroll}>
+          <View style={styles.modulesGrid}>
             {[
               { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Hold Cleaning", desc: "Pre-load prep", color: "#10B981", bg: "#ECFDF5", locked: false },
-              { screen: "Camera",           icon: Camera,         label: "Quick Scan", desc: "Capture damage", color: "#3B82F6", bg: "#EFF6FF", locked: false },
               { screen: null,               icon: Lock,           label: "Bunker Survey", desc: "Fuel checking", color: "#64748B", bg: "#F1F5F9", locked: true },
               { screen: null,               icon: Ship,           label: "Draft Survey", desc: "Weight calc", color: "#64748B", bg: "#F1F5F9", locked: true },
             ].map((item, index) => (
@@ -262,10 +261,10 @@ export default function Home() {
                 activeOpacity={item.locked ? 1 : 0.7}
               >
                 <View style={[styles.moduleHIcon, { backgroundColor: item.bg }]}>
-                  <item.icon size={24} color={item.color} />
+                  <item.icon size={22} color={item.color} />
                 </View>
-                <Text style={styles.moduleHLabel}>{item.label}</Text>
-                <Text style={styles.moduleHDesc}>{item.desc}</Text>
+                <Text style={styles.moduleHLabel} numberOfLines={1}>{item.label}</Text>
+                <Text style={styles.moduleHDesc} numberOfLines={1}>{item.desc}</Text>
                 {item.locked && (
                   <View style={styles.lockHBadge}>
                     <Lock size={12} color="#94A3B8" />
@@ -273,7 +272,7 @@ export default function Home() {
                 )}
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Recent Activity Section */}
@@ -711,15 +710,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  modulesScroll: {
-    paddingRight: 24,
+  modulesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   moduleHCard: {
-    width: 140,
+    width: '31%',
     backgroundColor: '#FFF',
-    padding: 16,
+    padding: 12,
     borderRadius: 24,
-    marginRight: 16,
     borderWidth: 1,
     borderColor: '#F1F5F9',
     shadowColor: '#000',
@@ -733,23 +732,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   moduleHIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   moduleHLabel: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   moduleHDesc: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#94A3B8',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   lockHBadge: {
     position: 'absolute',
