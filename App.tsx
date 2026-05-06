@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid } from 'lucide-react-native';
+import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid, Ship } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
 // Stores
@@ -100,8 +100,8 @@ function TabNavigator() {
         name="Vehicles"
         component={VehiclesScreen}
         options={{
-          tabBarLabel: 'Vehicles',
-          tabBarIcon: ({ color }) => <Car size={24} color={color} />,
+          tabBarLabel: 'Fleet',
+          tabBarIcon: ({ color }) => <Ship size={24} color={color} />,
         }}
       />
       <Tab.Screen

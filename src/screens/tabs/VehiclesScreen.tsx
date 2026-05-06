@@ -1,10 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, Modal, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Hash, Calendar, Tag, Shield, Info, ChevronRight, Search, Activity, MoreVertical } from 'lucide-react-native';
+import { Car, Plus, X, Hash, Calendar, Tag, Shield, Info, ChevronRight, Search, Activity, MoreVertical, ChevronDown } from 'lucide-react-native';
 import { databaseService } from '../../services/databaseService';
 import { useAuthStore } from '../../store/useAuthStore';
 import LinearGradient from 'react-native-linear-gradient';
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 40 }, (_, i) => (CURRENT_YEAR - i).toString());
 
 export default function Vehicles() {
   const { user } = useAuthStore();
@@ -20,6 +23,7 @@ export default function Vehicles() {
   const [year, setYear] = useState('');
   const [plate, setPlate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
   const loadVehicles = useCallback(async () => {
     if (!user) return;
@@ -234,29 +238,48 @@ export default function Vehicles() {
                   </View>
                 </View>
 
+                <Text style={styles.inputLabel}>MANUFACTURE YEAR</Text>
+                <TouchableOpacity 
+                  style={[styles.inputGroup, isYearDropdownOpen && styles.inputGroupOpen]} 
+                  onPress={() => setIsYearDropdownOpen(!isYearDropdownOpen)}
+                  activeOpacity={0.7}
+                >
+                  <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <Text style={[styles.input, !year && { color: '#94A3B8' }]}>
+                    {year || 'Select Year'}
+                  </Text>
+                  <ChevronDown size={18} color="#94A3B8" />
+                </TouchableOpacity>
+
+                {isYearDropdownOpen && (
+                  <View style={styles.dropdownContainer}>
+                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
+                      {YEARS.map(y => (
+                        <TouchableOpacity 
+                          key={y} 
+                          style={[styles.dropdownItem, year === y && styles.dropdownItemActive]}
+                          onPress={() => {
+                            setYear(y);
+                            setIsYearDropdownOpen(false);
+                          }}
+                        >
+                          <Text style={[styles.dropdownItemText, year === y && styles.dropdownItemTextActive]}>{y}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
                 <Text style={styles.inputLabel}>IDENTIFICATION</Text>
-                <View style={styles.inputRow}>
-                  <View style={[styles.inputGroup, { flex: 0.4 }]}>
-                    <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Year"
-                      value={year}
-                      onChangeText={setYear}
-                      keyboardType="numeric"
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                  <View style={[styles.inputGroup, { flex: 0.6, marginLeft: 12 }]}>
-                    <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Plate Number"
-                      value={plate}
-                      onChangeText={setPlate}
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
+                <View style={styles.inputGroup}>
+                  <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Plate Number"
+                    value={plate}
+                    onChangeText={setPlate}
+                    placeholderTextColor="#94A3B8"
+                  />
                 </View>
 
                 <View style={styles.infoBox}>
@@ -603,6 +626,44 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#0F172A',
+  },
+  inputGroupOpen: {
+    borderColor: '#3B82F6',
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    marginBottom: 0,
+  },
+  dropdownContainer: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#3B82F6',
+    borderTopWidth: 0,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginBottom: 16,
+    overflow: 'hidden',
+    height: 150,
+  },
+  dropdownScroll: {
+    flex: 1,
+  },
+  dropdownItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  dropdownItemActive: {
+    backgroundColor: '#EEF2FF',
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#0F172A',
+  },
+  dropdownItemTextActive: {
+    color: '#3B82F6',
+    fontWeight: '800',
   },
   infoBox: {
     flexDirection: 'row',
