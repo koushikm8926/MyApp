@@ -1,15 +1,205 @@
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { ArrowLeft, CheckCircle2, ChevronRight, MapPin, Search } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, MapPin, Camera, Plus, Wand2 } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import CustomCameraModal from '../../components/CustomCameraModal';
 import {
   EMPTY_COMPLETED_SUBLOCATION_IDS,
   SUBLOCATIONS_PER_ZONE,
   useZoneProgressStore,
   zoneProgressCounts,
 } from '../../store/useZoneProgressStore';
+import {
+  type DraftAttribute,
+  defaultSublocationAttributes,
+  getSublocationDraftKey,
+  useHoldInspectionDraftStore,
+} from '../../store/useHoldInspectionDraftStore';
+
+const { width } = Dimensions.get('window');
+
+function SublocationPanel({ 
+  holdId, 
+  zoneId, 
+  sublocationId, 
+  title,
+  onComplete 
+}: { 
+  holdId: string, 
+  zoneId: string, 
+  sublocationId: string, 
+  title: string,
+  onComplete: () => void 
+}) {
+  const draftKey = getSublocationDraftKey(holdId, zoneId, sublocationId);
+  const upsertSublocationDraft = useHoldInspectionDraftStore((s) => s.upsertSublocationDraft);
+  const markSublocationComplete = useZoneProgressStore((s) => s.markSublocationComplete);
+
+  const [attributes, setAttributes] = useState<DraftAttribute[]>(() => {
+    const stored = useHoldInspectionDraftStore.getState().sublocationDraftByKey[draftKey];
+    if (stored) {
+      return stored.attributes.map(a => ({...a}));
+    }
+    return defaultSublocationAttributes();
+  });
+  const [comment, setComment] = useState(() => {
+    const stored = useHoldInspectionDraftStore.getState().sublocationDraftByKey[draftKey];
+    return stored ? stored.comment : '';
+  });
+
+  const commentRef = useRef(comment);
+  commentRef.current = comment;
+
+  useEffect(() => {
+    upsertSublocationDraft(draftKey, { attributes, comment });
+  }, [attributes, comment, draftKey, upsertSublocationDraft]);
+
+  const persistDraftAttributes = useCallback(
+    (nextAttrs: DraftAttribute[]) => {
+      useHoldInspectionDraftStore.getState().upsertSublocationDraft(draftKey, {
+        attributes: nextAttrs,
+        comment: commentRef.current,
+      });
+    },
+    [draftKey]
+  );
+
+  const handleAddAttribute = () => {
+    setAttributes([
+      ...attributes, 
+      { id: Date.now().toString(), type: 'Condition', value: '', uri: null }
+    ]);
+  };
+
+  const [isCameraVisible, setCameraVisible] = useState(false);
+  const [activeAttrId, setActiveAttrId] = useState<string | null>(null);
+
+  const handleTakeShot = (id: string) => {
+    setActiveAttrId(id);
+    setCameraVisible(true);
+  };
+
+  const onPictureTaken = (uri: string) => {
+    if (!activeAttrId) return;
+    setAttributes((current) => {
+      const next = current.map((attr) =>
+        attr.id === activeAttrId ? { ...attr, uri } : attr
+      );
+      persistDraftAttributes(next);
+      return next;
+    });
+  };
+
+  const handleGenerateAI = () => {
+    setComment("Observation: Area is well-maintained with negligible rust. Surface cleanliness meets standard requirements. Structural integrity confirmed via visual inspection.");
+  };
+
+  const handleComplete = () => {
+    markSublocationComplete(zoneId, sublocationId);
+    onComplete();
+  };
+
+  return (
+    <View style={styles.panelContainer}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelScroll}>
+        <View style={styles.panelHeader}>
+          <Text style={styles.panelTitle}>{title}</Text>
+          <Text style={styles.panelSubtitle}>Attribute Evidence</Text>
+        </View>
+
+        <View style={styles.attributesContainer}>
+          {attributes.map((attr, index) => (
+            <View key={attr.id} style={styles.attributeRow}>
+              <View style={styles.attributeInputContainer}>
+                <View style={styles.attributeLabelRow}>
+                  <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
+                </View>
+                <View style={styles.inputWithSelect}>
+                  <View style={styles.dropdownTrigger}>
+                    <Text style={styles.dropdownText}>{attr.type.toUpperCase()}</Text>
+                  </View>
+                  <TextInput 
+                    style={styles.textInput}
+                    placeholder="Enter condition..."
+                    placeholderTextColor="#94A3B8"
+                    value={attr.value}
+                    onChangeText={(val) => {
+                      const newAttrs = [...attributes];
+                      newAttrs[index].value = val;
+                      setAttributes(newAttrs);
+                    }}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={[styles.cameraButton, attr.uri && styles.cameraButtonSuccess]} 
+                onPress={() => handleTakeShot(attr.id)}
+                activeOpacity={0.8}
+              >
+                {attr.uri ? (
+                  <View style={styles.thumbnailContainer}>
+                    <Image source={{ uri: attr.uri }} style={styles.thumbnail} />
+                    <View style={styles.badge}>
+                      <CheckCircle2 size={12} color="#10B981" fill="#FFF" />
+                    </View>
+                  </View>
+                ) : (
+                  <Camera size={20} color="#6366F1" />
+                )}
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          <TouchableOpacity style={styles.addButton} onPress={handleAddAttribute} activeOpacity={0.7}>
+            <Plus size={16} color="#4F46E5" />
+            <Text style={styles.addButtonText}>ADD PROPERTY</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.commentContainer}>
+          <View style={styles.commentHeader}>
+            <Text style={styles.commentTitle}>Observations</Text>
+            <TouchableOpacity style={styles.aiButton} onPress={handleGenerateAI} activeOpacity={0.8}>
+              <Wand2 size={12} color="#4F46E5" />
+              <Text style={styles.aiButtonText}>Smart Fill</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TextInput
+            style={styles.textArea}
+            placeholder="Type observations..."
+            placeholderTextColor="#94A3B8"
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            value={comment}
+            onChangeText={setComment}
+          />
+        </View>
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={styles.panelFooter}>
+        <TouchableOpacity style={styles.completeButton} onPress={handleComplete} activeOpacity={0.8}>
+          <CheckCircle2 size={18} color="#FFFFFF" />
+          <Text style={styles.completeButtonText}>Validate & Next</Text>
+        </TouchableOpacity>
+      </View>
+
+      <CustomCameraModal 
+        visible={isCameraVisible} 
+        onClose={() => setCameraVisible(false)} 
+        onPictureTaken={onPictureTaken} 
+        guideText={attributes.find(a => a.id === activeAttrId)?.type ? `${attributes.find(a => a.id === activeAttrId)?.type} PHOTO`.toUpperCase() : "CAPTURE PHOTO"}
+      />
+    </View>
+  );
+}
 
 export default function ZoneDetailsScreen() {
   const navigation = useNavigation<any>();
@@ -32,17 +222,29 @@ export default function ZoneDetailsScreen() {
         return {
           id,
           title: `Sublocation ${i + 1}`,
+          shortTitle: `Sub ${i + 1}`,
           status: completed ? ('completed' as const) : ('pending' as const),
         };
       }),
     [completedIdsForZone]
   );
 
-  const { completed: completedCount, total: totalCount, pct: progressPercentage } =
+  const [activeSublocationId, setActiveSublocationId] = useState(sublocations[0].id);
+
+  const activeSublocation = sublocations.find(s => s.id === activeSublocationId) || sublocations[0];
+
+  const handleNextSublocation = () => {
+    const currentIndex = sublocations.findIndex(s => s.id === activeSublocationId);
+    if (currentIndex < sublocations.length - 1) {
+      setActiveSublocationId(sublocations[currentIndex + 1].id);
+    }
+  };
+
+  const { completed: completedCount, total: totalCount } =
     zoneProgressCounts(completedByZone, zoneId, SUBLOCATIONS_PER_ZONE);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <LinearGradient
         colors={['#4F46E5', '#6366F1']}
@@ -53,103 +255,90 @@ export default function ZoneDetailsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{zoneTitle}</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={styles.headerTitle}>{zoneTitle}</Text>
+          <Text style={styles.headerSubtitle}>{completedCount}/{totalCount} Completed</Text>
+        </View>
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressHeader}>
-            <View>
-              <Text style={styles.progressTitle}>Zone Validation</Text>
-              <Text style={styles.progressSubtitle}>{completedCount} of {totalCount} Items Checked</Text>
-            </View>
-            <View style={styles.percentageBadge}>
-              <Text style={styles.percentageText}>{progressPercentage}%</Text>
-            </View>
-          </View>
-          <View style={styles.progressBarContainer}>
-            <View 
-              style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} 
-            />
-          </View>
-        </View>
-
-        <View style={styles.listContainer}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Sublocations</Text>
-            <Search size={18} color="#6366F1" />
-          </View>
-          
-          {sublocations.map((item) => {
-            const isCompleted = item.status === 'completed';
-            
-            return (
-              <TouchableOpacity 
-                key={item.id}
-                style={[styles.cardContainer, isCompleted && styles.cardCompleted]} 
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('Sublocation', { 
-                  holdId,
-                  sublocationId: item.id, 
-                  title: item.title,
-                  zoneTitle,
-                  zoneId,
-                })}
-              >
-                <View style={styles.card}>
-                  <View style={[styles.iconContainer, isCompleted && styles.iconCompleted]}>
+      <View style={styles.splitContent}>
+        {/* Left Sidebar */}
+        <View style={styles.sidebar}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sidebarScroll}>
+            {sublocations.map(item => {
+              const isActive = item.id === activeSublocationId;
+              const isCompleted = item.status === 'completed';
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.sidebarItem,
+                    isActive && styles.sidebarItemActive,
+                    isCompleted && !isActive && styles.sidebarItemCompleted
+                  ]}
+                  onPress={() => setActiveSublocationId(item.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[
+                    styles.sidebarIconWrap, 
+                    isActive && styles.sidebarIconWrapActive,
+                    isCompleted && !isActive && styles.sidebarIconWrapCompleted
+                  ]}>
                     {isCompleted ? (
-                      <CheckCircle2 size={24} color="#10B981" />
+                      <CheckCircle2 size={20} color={isActive ? "#4F46E5" : "#10B981"} />
                     ) : (
-                      <MapPin size={24} color="#4F46E5" />
+                      <MapPin size={20} color={isActive ? "#4F46E5" : "#94A3B8"} />
                     )}
                   </View>
-                  
-                  <View style={styles.cardContent}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardDescription}>
-                      {isCompleted ? 'Verification complete' : 'Detailed check required'}
-                    </Text>
-                  </View>
-                  
-                  <View style={styles.statusAction}>
-                    <Text style={[styles.statusText, isCompleted ? styles.statusCompleted : styles.statusPending]}>
-                      {isCompleted ? 'Done' : 'Start'}
-                    </Text>
-                    <ChevronRight size={18} color={isCompleted ? "#10B981" : "#6366F1"} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+                  <Text style={[
+                    styles.sidebarItemText,
+                    isActive && styles.sidebarItemTextActive,
+                    isCompleted && !isActive && styles.sidebarItemTextCompleted
+                  ]} numberOfLines={1}>
+                    {item.shortTitle}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
+          </ScrollView>
         </View>
 
-      </ScrollView>
-    </View>
+        {/* Right Content */}
+        <View style={styles.mainArea}>
+          <SublocationPanel 
+            key={activeSublocationId} 
+            holdId={holdId} 
+            zoneId={zoneId} 
+            sublocationId={activeSublocationId} 
+            title={activeSublocation.title}
+            onComplete={handleNextSublocation}
+          />
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
     shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 5,
+    zIndex: 10,
   },
   backButton: {
     width: 40,
@@ -165,140 +354,282 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  scrollContent: {
-    paddingBottom: 40,
+  headerSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '700',
+    marginTop: 2,
+    textTransform: 'uppercase',
   },
-  progressSection: {
+  splitContent: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  sidebar: {
+    width: 85,
+    backgroundColor: '#F1F5F9',
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  sidebarScroll: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  sidebarItem: {
+    width: 64,
+    height: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+  },
+  sidebarItemActive: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 20,
-    marginTop: 24,
-    marginBottom: 24,
-    padding: 24,
-    borderRadius: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.04,
-    shadowRadius: 12,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 3,
   },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+  sidebarItemCompleted: {
+    opacity: 0.8,
   },
-  progressTitle: {
-    fontSize: 18,
+  sidebarIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  sidebarIconWrapActive: {
+    backgroundColor: '#EEF2FF',
+  },
+  sidebarIconWrapCompleted: {
+    backgroundColor: '#ECFDF5',
+  },
+  sidebarItemText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  sidebarItemTextActive: {
+    color: '#4F46E5',
+    fontWeight: '900',
+  },
+  sidebarItemTextCompleted: {
+    color: '#10B981',
+  },
+  mainArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  panelContainer: {
+    flex: 1,
+  },
+  panelScroll: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  panelHeader: {
+    marginBottom: 20,
+  },
+  panelTitle: {
+    fontSize: 22,
     fontWeight: '900',
     color: '#1E293B',
     marginBottom: 4,
   },
-  progressSubtitle: {
-    fontSize: 13,
+  panelSubtitle: {
+    fontSize: 14,
     color: '#64748B',
     fontWeight: '600',
   },
-  percentageBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+  attributesContainer: {
+    marginBottom: 20,
   },
-  percentageText: {
-    color: '#4F46E5',
-    fontWeight: '900',
-    fontSize: 16,
-  },
-  progressBarContainer: {
-    height: 10,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 5,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#4F46E5',
-    borderRadius: 5,
-  },
-  listContainer: {
-    paddingHorizontal: 20,
-  },
-  sectionHeader: {
+  attributeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     marginBottom: 16,
+  },
+  attributeInputContainer: {
+    flex: 1,
+    marginRight: 10,
+  },
+  attributeLabelRow: {
+    marginBottom: 6,
     paddingHorizontal: 4,
   },
-  sectionTitle: {
-    fontSize: 20,
+  attributeLabel: {
+    fontSize: 10,
     fontWeight: '900',
+    color: '#6366F1',
+    letterSpacing: 1,
+  },
+  inputWithSelect: {
+    flexDirection: 'row',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    height: 52,
+    overflow: 'hidden',
+  },
+  dropdownTrigger: {
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    backgroundColor: '#F1F5F9',
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+    minWidth: 70,
+  },
+  dropdownText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  textInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    fontWeight: '600',
     color: '#1E293B',
   },
-  cardContainer: {
-    marginBottom: 12,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardCompleted: {
-    opacity: 0.9,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+  cameraButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
   },
-  iconCompleted: {
-    backgroundColor: '#ECFDF5',
+  cameraButtonSuccess: {
+    padding: 0,
+    borderWidth: 2,
+    borderColor: '#10B981',
+    backgroundColor: 'transparent',
   },
-  cardContent: {
-    flex: 1,
-    marginLeft: 16,
-    marginRight: 8,
+  thumbnailContainer: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+    position: 'relative',
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 4,
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
   },
-  cardDescription: {
-    fontSize: 13,
-    color: '#64748B',
-    fontWeight: '500',
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    elevation: 2,
   },
-  statusAction: {
+  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#EEF2FF',
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    borderStyle: 'dashed',
+    marginTop: 8,
   },
-  statusText: {
-    fontSize: 13,
+  addButtonText: {
+    marginLeft: 6,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#4F46E5',
+    letterSpacing: 1,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 24,
+  },
+  commentContainer: {},
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  commentTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1E293B',
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  aiButtonText: {
+    marginLeft: 4,
+    fontSize: 11,
     fontWeight: '800',
-    marginRight: 4,
+    color: '#4F46E5',
   },
-  statusPending: {
-    color: '#6366F1',
+  textArea: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1E293B',
+    minHeight: 120,
+    lineHeight: 20,
+    textAlignVertical: 'top',
   },
-  statusCompleted: {
-    color: '#10B981',
+  panelFooter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  completeButton: {
+    flexDirection: 'row',
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#4F46E5',
+  },
+  completeButtonText: {
+    marginLeft: 8,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
   },
 });
