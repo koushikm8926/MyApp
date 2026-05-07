@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions, Modal } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions, Modal, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { ArrowLeft, CheckCircle2, MapPin, Camera, Plus, Wand2 } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle2, MapPin, Camera, Plus, Wand2, Trash2, FileText, Save } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
 import CustomCameraModal from '../../components/CustomCameraModal';
 import {
@@ -39,13 +39,15 @@ function SublocationPanel({
   zoneId, 
   sublocationId, 
   title,
-  onComplete 
+  onComplete,
+  isLast 
 }: { 
   holdId: string, 
   zoneId: string, 
   sublocationId: string, 
   title: string,
-  onComplete: () => void 
+  onComplete: () => void,
+  isLast: boolean
 }) {
   const draftKey = getSublocationDraftKey(holdId, zoneId, sublocationId);
   const upsertSublocationDraft = useHoldInspectionDraftStore((s) => s.upsertSublocationDraft);
@@ -87,9 +89,26 @@ function SublocationPanel({
     ]);
   };
 
+  const handleDeleteAttribute = (id: string) => {
+    if (attributes.length > 1) {
+      setAttributes(current => current.filter(attr => attr.id !== id));
+    }
+  };
+
   const [isCameraVisible, setCameraVisible] = useState(false);
   const [activeAttrId, setActiveAttrId] = useState<string | null>(null);
   const [activeDropdownIndex, setActiveDropdownIndex] = useState<number | null>(null);
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+  }, [sublocationId]);
 
   const handleTakeShot = (id: string) => {
     setActiveAttrId(id);
@@ -117,19 +136,31 @@ function SublocationPanel({
   };
 
   return (
-    <View style={styles.panelContainer}>
+    <Animated.View style={[styles.panelContainer, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [15, 0] }) }] }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.panelScroll}>
         <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>{title}</Text>
-          <Text style={styles.panelSubtitle}>Attribute Evidence</Text>
+          <View style={styles.panelTitleRow}>
+            <Text style={styles.panelTitle}>{title}</Text>
+            <View style={styles.activeIndicator} />
+          </View>
+          <Text style={styles.panelSubtitle}>Complete all required property checks below</Text>
         </View>
 
-        <View style={styles.attributesContainer}>
+        <View style={styles.evidenceSection}>
+           <View style={styles.evidenceSectionHeader}>
+              <FileText size={18} color="#4F46E5" />
+              <Text style={styles.evidenceSectionTitle}>Attribute Evidence</Text>
+           </View>
           {attributes.map((attr, index) => (
             <View key={attr.id} style={styles.attributeRow}>
               <View style={styles.attributeInputContainer}>
                 <View style={styles.attributeLabelRow}>
                   <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
+                  {index > 0 && (
+                    <TouchableOpacity onPress={() => handleDeleteAttribute(attr.id)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+                      <Trash2 size={14} color="#EF4444" />
+                    </TouchableOpacity>
+                  )}
                 </View>
                 <View style={styles.inputWithSelect}>
                   <TouchableOpacity 
@@ -204,9 +235,13 @@ function SublocationPanel({
 
       {/* Footer */}
       <View style={styles.panelFooter}>
-        <TouchableOpacity style={styles.completeButton} onPress={handleComplete} activeOpacity={0.8}>
-          <CheckCircle2 size={18} color="#FFFFFF" />
-          <Text style={styles.completeButtonText}>Validate & Next</Text>
+        <TouchableOpacity 
+          style={[styles.completeButton, isLast && styles.finishButton]} 
+          onPress={handleComplete} 
+          activeOpacity={0.8}
+        >
+          {isLast ? <Save size={20} color="#FFFFFF" /> : <CheckCircle2 size={18} color="#FFFFFF" />}
+          <Text style={styles.completeButtonText}>{isLast ? "Finish Zone Inspection" : "Validate & Next"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -265,7 +300,7 @@ function SublocationPanel({
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -308,7 +343,7 @@ export default function ZoneDetailsScreen() {
     }
   };
 
-  const { completed: completedCount, total: totalCount } =
+  const { completed: completedCount, total: totalCount, pct: progressPercentage } =
     zoneProgressCounts(completedByZone, zoneId, SUBLOCATIONS_PER_ZONE);
 
   return (
@@ -333,6 +368,13 @@ export default function ZoneDetailsScreen() {
       <View style={styles.splitContent}>
         {/* Left Sidebar */}
         <View style={styles.sidebar}>
+          <View style={styles.sidebarHeader}>
+            <Text style={styles.sidebarHeaderLabel}>PROGRESS</Text>
+            <Text style={styles.sidebarHeaderPct}>{progressPercentage}%</Text>
+            <View style={styles.miniProgressContainer}>
+               <View style={[styles.miniProgressFill, { width: `${progressPercentage}%` }]} />
+            </View>
+          </View>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sidebarScroll}>
             {sublocations.map(item => {
               const isActive = item.id === activeSublocationId;
@@ -381,6 +423,7 @@ export default function ZoneDetailsScreen() {
             sublocationId={activeSublocationId} 
             title={activeSublocation.title}
             onComplete={handleNextSublocation}
+            isLast={activeSublocationId === sublocations[sublocations.length - 1].id}
           />
         </View>
       </View>
@@ -510,18 +553,52 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   panelTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#1E293B',
-    marginBottom: 4,
+    color: '#0F172A',
+    marginBottom: 2,
+    letterSpacing: -0.5,
+  },
+  panelTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  activeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginLeft: 10,
   },
   panelSubtitle: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: 13,
+    color: '#94A3B8',
     fontWeight: '600',
   },
-  attributesContainer: {
+  evidenceSection: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 24,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     marginBottom: 20,
+  },
+  evidenceSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  evidenceSectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#475569',
+    marginLeft: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  attributesContainer: {
+    // padding: 4
   },
   attributeRow: {
     flexDirection: 'row',
@@ -533,6 +610,9 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   attributeLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 6,
     paddingHorizontal: 4,
   },
@@ -688,17 +768,58 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     flexDirection: 'row',
-    height: 52,
-    borderRadius: 16,
+    height: 56,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#4F46E5',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  finishButton: {
+    backgroundColor: '#059669', // Emerald 600
+    shadowColor: '#059669',
   },
   completeButtonText: {
-    marginLeft: 8,
+    marginLeft: 10,
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  sidebarHeader: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  sidebarHeaderLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  sidebarHeaderPct: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1E293B',
+    marginBottom: 6,
+  },
+  miniProgressContainer: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  miniProgressFill: {
+    height: '100%',
+    backgroundColor: '#4F46E5',
   },
   modalOverlay: {
     flex: 1,
