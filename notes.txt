@@ -10,3 +10,7 @@ it should have a image capturing button , a proper retengular frem, with freamin
 
 
 the hold heade rpart is not lookg good could y
+
+
+
+Now can you please improve the 

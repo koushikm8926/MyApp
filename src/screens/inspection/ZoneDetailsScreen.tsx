@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, CheckCircle2, MapPin, Camera, Plus, Wand2 } from 'lucide-react-native';
@@ -19,6 +19,20 @@ import {
 } from '../../store/useHoldInspectionDraftStore';
 
 const { width } = Dimensions.get('window');
+
+const PREDEFINED_CONDITIONS = [
+  'Clean & Intact',
+  'Rust / Corrosion',
+  'Dents / Deformation',
+  'Paint Peeling / Flaking',
+  'Oil / Grease Spill',
+  'Water Leakage',
+  'Cracks / Structural Issue',
+  'Contamination / Residue',
+  'Missing / Broken Parts',
+  'Loose Fittings',
+  'Other (Specify manually)'
+];
 
 function SublocationPanel({ 
   holdId, 
@@ -75,6 +89,7 @@ function SublocationPanel({
 
   const [isCameraVisible, setCameraVisible] = useState(false);
   const [activeAttrId, setActiveAttrId] = useState<string | null>(null);
+  const [activeDropdownIndex, setActiveDropdownIndex] = useState<number | null>(null);
 
   const handleTakeShot = (id: string) => {
     setActiveAttrId(id);
@@ -117,9 +132,13 @@ function SublocationPanel({
                   <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
                 </View>
                 <View style={styles.inputWithSelect}>
-                  <View style={styles.dropdownTrigger}>
-                    <Text style={styles.dropdownText}>{attr.type.toUpperCase()}</Text>
-                  </View>
+                  <TouchableOpacity 
+                    style={styles.dropdownTrigger}
+                    onPress={() => setActiveDropdownIndex(index)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.dropdownText}>SELECT ▼</Text>
+                  </TouchableOpacity>
                   <TextInput 
                     style={styles.textInput}
                     placeholder="Enter condition..."
@@ -197,6 +216,55 @@ function SublocationPanel({
         onPictureTaken={onPictureTaken} 
         guideText={attributes.find(a => a.id === activeAttrId)?.type ? `${attributes.find(a => a.id === activeAttrId)?.type} PHOTO`.toUpperCase() : "CAPTURE PHOTO"}
       />
+
+      <Modal 
+        visible={activeDropdownIndex !== null} 
+        transparent 
+        animationType="fade"
+        onRequestClose={() => setActiveDropdownIndex(null)}
+      >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} onPress={() => setActiveDropdownIndex(null)} activeOpacity={1} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalSheetHeader}>
+              <Text style={styles.modalSheetTitle}>Select Condition</Text>
+              <TouchableOpacity onPress={() => setActiveDropdownIndex(null)} style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+              {PREDEFINED_CONDITIONS.map((cond, i) => {
+                const isSelected = activeDropdownIndex !== null && attributes[activeDropdownIndex]?.value === cond;
+                return (
+                  <TouchableOpacity 
+                    key={i} 
+                    style={[styles.conditionOption, isSelected && styles.conditionOptionSelected]}
+                    onPress={() => {
+                      if (activeDropdownIndex !== null) {
+                        const newAttrs = [...attributes];
+                        if (cond === 'Other (Specify manually)') {
+                          if (PREDEFINED_CONDITIONS.includes(newAttrs[activeDropdownIndex].value)) {
+                            newAttrs[activeDropdownIndex].value = '';
+                          }
+                        } else {
+                          newAttrs[activeDropdownIndex].value = cond;
+                        }
+                        setAttributes(newAttrs);
+                      }
+                      setActiveDropdownIndex(null);
+                    }}
+                  >
+                    <Text style={[styles.conditionOptionText, isSelected && styles.conditionOptionTextSelected]}>
+                      {cond}
+                    </Text>
+                    {isSelected && <CheckCircle2 size={20} color="#4F46E5" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -485,16 +553,16 @@ const styles = StyleSheet.create({
   },
   dropdownTrigger: {
     justifyContent: 'center',
-    paddingHorizontal: 10,
-    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    backgroundColor: '#EEF2FF',
     borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
-    minWidth: 70,
+    borderRightColor: '#C7D2FE',
+    minWidth: 80,
   },
   dropdownText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '900',
-    color: '#64748B',
+    color: '#4F46E5',
     textAlign: 'center',
   },
   textInput: {
@@ -631,5 +699,71 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '900',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15,23,42,0.4)',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: '80%',
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalSheetTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1E293B',
+  },
+  modalCloseBtn: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  modalCloseText: {
+    color: '#4F46E5',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  conditionOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  conditionOptionSelected: {
+    backgroundColor: '#EEF2FF',
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderBottomWidth: 0,
+  },
+  conditionOptionText: {
+    fontSize: 16,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  conditionOptionTextSelected: {
+    color: '#4F46E5',
+    fontWeight: '800',
   },
 });
