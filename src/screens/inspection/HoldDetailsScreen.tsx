@@ -244,17 +244,20 @@ export default function HoldDetailsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#0F172A', '#1E293B']}
+        colors={['#4F46E5', '#312E81']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <ArrowLeft size={24} color="#FFFFFF" />
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+            <ArrowLeft size={22} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Hold Inspection</Text>
-          <TouchableOpacity style={styles.infoButton}>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Hold Inspection</Text>
+            <Text style={styles.headerSubtitle}>Vessel Walkthrough</Text>
+          </View>
+          <TouchableOpacity style={styles.infoButton} activeOpacity={0.8}>
             <Info size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -270,6 +273,7 @@ export default function HoldDetailsScreen() {
                   styles.holdTab, 
                   activeIndex === index && styles.holdTabActive
                 ]}
+                activeOpacity={0.9}
               >
                 <Text style={[
                   styles.holdTabText, 
@@ -277,7 +281,6 @@ export default function HoldDetailsScreen() {
                 ]}>
                   HOLD {index + 1}
                 </Text>
-                {activeIndex === index && <View style={styles.activeTabIndicator} />}
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -332,7 +335,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 20,
   },
   backButton: {
     width: 44,
@@ -340,7 +343,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   infoButton: {
     width: 44,
@@ -348,6 +353,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
@@ -355,8 +366,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   holdSelector: {
-    paddingBottom: 10,
+    paddingBottom: 20,
   },
   holdSelectorScroll: {
     paddingHorizontal: 20,
@@ -367,25 +386,31 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   holdTabActive: {
-    // No background, just indicator
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
   },
   holdTabText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.5,
   },
   holdTabTextActive: {
-    color: '#FFFFFF',
+    color: '#4F46E5',
   },
   activeTabIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    width: 24,
-    height: 4,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
+    display: 'none',
   },
   holdPage: {
     width: width,

@@ -7,3 +7,6 @@ dont chenge any function or logic i wnat only the UI improvemnt, improve the all
 
 i want the if the user opening up a camera model to capture the image 
 it should have a image capturing button , a proper retengular frem, with freaming rate , its stablity , if the iamge is blur or not thease features , and the captureing iage should update the box with the image 
+
+
+the hold heade rpart is not lookg good could y
