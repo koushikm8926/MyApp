@@ -340,6 +340,8 @@ export default function ZoneDetailsScreen() {
     const currentIndex = sublocations.findIndex(s => s.id === activeSublocationId);
     if (currentIndex < sublocations.length - 1) {
       setActiveSublocationId(sublocations[currentIndex + 1].id);
+    } else {
+      navigation.goBack();
     }
   };
 
