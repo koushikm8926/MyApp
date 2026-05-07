@@ -99,49 +99,64 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
         {/* Mandatory Shots Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Mandatory Shots</Text>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.sectionTitle}>Mandatory Shots</Text>
+                <View style={[styles.shotCounter, completedShots === 5 && styles.shotCounterCompleted]}>
+                  <Text style={[styles.shotCounterText, completedShots === 5 && styles.shotCounterTextCompleted]}>
+                    {completedShots}/5
+                  </Text>
+                </View>
+              </View>
               <Text style={styles.sectionSubtitle}>Capture required angles for compliance</Text>
-            </View>
-            <View style={styles.shotCounter}>
-              <Text style={styles.shotCounterText}>{completedShots}/5</Text>
+              <View style={styles.shotsProgressBarOuter}>
+                <View style={[styles.shotsProgressBarInner, { width: `${(completedShots / 5) * 100}%` }, completedShots === 5 && { backgroundColor: '#10B981' }]} />
+              </View>
             </View>
           </View>
 
           <View style={styles.shotsGrid}>
-            {shots.map((shot) => (
-              <TouchableOpacity 
-                key={shot.id}
-                style={[styles.shotCard, shot.completed && styles.shotCardCompleted]}
-                onPress={() => onTakeShot(hold.id, shot.id)}
-                activeOpacity={0.9}
-              >
-                {shot.completed && shot.uri ? (
-                  <View style={styles.shotImageContainer}>
-                    <Image source={{ uri: shot.uri }} style={styles.shotImage} />
-                    <LinearGradient
-                      colors={['transparent', 'rgba(0,0,0,0.6)']}
-                      style={styles.shotImageOverlay}
-                    >
-                      <View style={styles.shotStatusRow}>
-                        <CheckCircle2 size={14} color="#10B981" fill="#FFFFFF" />
-                        <Text style={styles.shotStatusText}>Captured</Text>
+            {shots.map((shot, index) => {
+              const isLastOdd = index === 4;
+              return (
+                <TouchableOpacity 
+                  key={shot.id}
+                  style={[
+                    styles.shotCard,
+                    isLastOdd && styles.shotCardFullWidth,
+                    shot.completed && styles.shotCardCompleted
+                  ]}
+                  onPress={() => onTakeShot(hold.id, shot.id)}
+                  activeOpacity={0.9}
+                >
+                  {shot.completed && shot.uri ? (
+                    <View style={styles.shotImageContainer}>
+                      <Image source={{ uri: shot.uri }} style={styles.shotImage} />
+                      <LinearGradient
+                        colors={['transparent', 'rgba(15,23,42,0.85)']}
+                        style={styles.shotImageOverlay}
+                      >
+                        <View style={styles.shotStatusRow}>
+                          <CheckCircle2 size={16} color="#10B981" />
+                          <Text style={styles.shotStatusText}>Captured</Text>
+                        </View>
+                        <Text style={styles.shotImageLabel}>{shot.label}</Text>
+                      </LinearGradient>
+                    </View>
+                  ) : (
+                    <View style={styles.shotEmptyState}>
+                      <View style={styles.cameraIconBg}>
+                        <Camera size={26} color="#4F46E5" strokeWidth={2.5} />
                       </View>
-                    </LinearGradient>
-                  </View>
-                ) : (
-                  <View style={styles.shotEmptyState}>
-                    <View style={styles.cameraIconBg}>
-                      <Camera size={20} color="#3B82F6" />
+                      <Text style={styles.shotLabel}>{shot.label}</Text>
+                      <View style={styles.tapToCapture}>
+                        <Text style={styles.tapToCaptureText}>Tap to Capture</Text>
+                      </View>
                     </View>
-                    <Text style={styles.shotLabel}>{shot.label}</Text>
-                    <View style={styles.tapToCapture}>
-                      <Text style={styles.tapToCaptureText}>Tap to Capture</Text>
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -495,15 +510,33 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   shotCounter: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 12,
   },
+  shotCounterCompleted: {
+    backgroundColor: '#ECFDF5',
+  },
   shotCounterText: {
-    color: '#3B82F6',
+    color: '#4F46E5',
     fontWeight: '900',
     fontSize: 14,
+  },
+  shotCounterTextCompleted: {
+    color: '#10B981',
+  },
+  shotsProgressBarOuter: {
+    height: 6,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 3,
+    marginTop: 16,
+    overflow: 'hidden',
+  },
+  shotsProgressBarInner: {
+    height: '100%',
+    backgroundColor: '#4F46E5',
+    borderRadius: 3,
   },
   shotsGrid: {
     flexDirection: 'row',
@@ -513,24 +546,28 @@ const styles = StyleSheet.create({
   },
   shotCard: {
     width: (width - 64) / 2, // 24px padding on each side, 16px gap
-    height: 180,
+    height: 200,
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#F1F5F9',
-    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#64748B',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
     overflow: 'hidden',
   },
+  shotCardFullWidth: {
+    width: width - 48,
+    height: 160,
+  },
   shotCardCompleted: {
-    borderStyle: 'solid',
     borderColor: '#10B981',
     borderWidth: 2,
     shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowOpacity: 0.15,
   },
   shotEmptyState: {
     flex: 1,
@@ -540,34 +577,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   cameraIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#EFF6FF',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   shotLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#1E293B',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    letterSpacing: 0.3,
   },
   tapToCapture: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 2,
   },
   tapToCaptureText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   shotImageContainer: {
     flex: 1,
@@ -583,23 +630,33 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 16,
-    height: '40%',
+    height: '60%',
     justifyContent: 'flex-end',
   },
   shotStatusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
     alignSelf: 'flex-start',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   shotStatusText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
-    marginLeft: 4,
+    marginLeft: 6,
+    letterSpacing: 0.5,
+  },
+  shotImageLabel: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   zonesList: {
     paddingHorizontal: 24,
