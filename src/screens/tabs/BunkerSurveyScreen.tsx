@@ -1,12 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Fuel, Droplets, Thermometer, Activity, Plus, History, ChevronRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Fuel, Droplets, Thermometer, Activity, Plus, History, ChevronRight, Lock } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../constants/theme';
 
 export default function BunkerSurveyScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
 
   const FuelCard = ({ type, amount, unit, change, status }: any) => (
     <View style={styles.fuelCard}>
@@ -120,6 +122,28 @@ export default function BunkerSurveyScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Locked Overlay */}
+      <View style={[StyleSheet.absoluteFill, styles.lockedOverlay]}>
+        <LinearGradient
+          colors={['rgba(248, 250, 252, 0.5)', 'rgba(248, 250, 252, 0.95)']}
+          style={styles.lockedGradient}
+        >
+          <View style={styles.lockCard}>
+            <View style={styles.lockIconCircle}>
+              <Lock size={32} color={COLORS.primary} />
+            </View>
+            <Text style={styles.lockTitle}>Module Locked</Text>
+            <Text style={styles.lockSubtitle}>This module is currently unavailable. Please complete the Hold Cleaning inspection first to unlock the Bunker Survey.</Text>
+            <TouchableOpacity 
+              style={styles.upgradeBtn}
+              onPress={() => navigation.navigate('Home')}
+            >
+              <Text style={styles.upgradeBtnText}>Start Hold Cleaning</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -341,5 +365,66 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '500',
+  },
+  lockedOverlay: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lockedGradient: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  lockCard: {
+    backgroundColor: COLORS.white,
+    padding: 32,
+    borderRadius: 32,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.1,
+    shadowRadius: 30,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: COLORS.divider,
+  },
+  lockIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  lockTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: COLORS.secondary,
+    marginBottom: 12,
+  },
+  lockSubtitle: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 32,
+    fontWeight: '500',
+  },
+  upgradeBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  upgradeBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '800',
   }
 });

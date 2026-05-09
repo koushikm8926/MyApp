@@ -16,7 +16,7 @@ import {
   StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, Lock, TrendingUp, AlertCircle, MoreVertical, Fuel, Waves } from 'lucide-react-native';
+import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, Lock, TrendingUp, AlertCircle, MoreVertical, Fuel, Waves, FileText, PaintBucket } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -29,25 +29,62 @@ const { width, height } = Dimensions.get('window');
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 40 }, (_, i) => (CURRENT_YEAR - i).toString());
 
-const CAR_BRANDS = [
-  { brand: 'Toyota', models: ['Camry', 'Corolla', 'RAV4', 'Highlander', 'Prius', 'Tacoma', 'Hilux', 'Land Cruiser'] },
-  { brand: 'Honda', models: ['Civic', 'Accord', 'CR-V', 'Pilot', 'Odyssey', 'Fit', 'HR-V'] },
-  { brand: 'Ford', models: ['F-150', 'Mustang', 'Explorer', 'Escape', 'Bronco', 'Ranger', 'Focus'] },
-  { brand: 'Chevrolet', models: ['Silverado', 'Equinox', 'Malibu', 'Tahoe', 'Suburban', 'Camaro', 'Colorado'] },
-  { brand: 'Nissan', models: ['Altima', 'Sentra', 'Rogue', 'Pathfinder', 'Murano', 'Frontier', 'Navara'] },
-  { brand: 'BMW', models: ['3 Series', '5 Series', 'X3', 'X5', 'M3', 'M5', '7 Series'] },
-  { brand: 'Mercedes-Benz', models: ['C-Class', 'E-Class', 'S-Class', 'GLC', 'GLE', 'G-Class'] },
-  { brand: 'Audi', models: ['A3', 'A4', 'A6', 'Q3', 'Q5', 'Q7', 'Q8'] },
-  { brand: 'Tesla', models: ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck'] },
-  { brand: 'Volkswagen', models: ['Jetta', 'Passat', 'Tiguan', 'Atlas', 'Golf', 'Polo'] },
-  { brand: 'Hyundai', models: ['Elantra', 'Sonata', 'Tucson', 'Santa Fe', 'Palisade', 'Kona'] },
-  { brand: 'Kia', models: ['Sportage', 'Sorento', 'Telluride', 'Optima', 'Forte', 'Soul'] },
-  { brand: 'Other / Custom', models: [] }
+const INSPECTION_OPTIONS = [
+  {
+    id: 'pre-inspection',
+    title: 'Pre-Inspection Doc',
+    description: 'Review and verify pre-inspection documents',
+    icon: FileText,
+    colors: ['#3B82F6', '#2563EB'],
+    iconColor: '#FFF',
+    screen: 'PreInspectionDoc',
+    dataKey: 'preInspectionDoc',
+  },
+  {
+    id: 'vessel-particular',
+    title: 'Vessel Particular',
+    description: 'Detailed specifications and details of the vessel',
+    icon: Ship,
+    colors: ['#0EA5E9', '#0284C7'],
+    iconColor: '#FFF',
+    screen: 'VesselParticular',
+    dataKey: 'vesselParticulars',
+  },
+  {
+    id: 'cleaning-standards',
+    title: 'Cleaning Standards',
+    description: 'Checklist and protocols for hold cleaning',
+    icon: PaintBucket,
+    colors: ['#8B5CF6', '#7C3AED'],
+    iconColor: '#FFF',
+    screen: 'CleaningStandards',
+    dataKey: 'cleaningStandards',
+  },
+  {
+    id: 'walk-hold',
+    title: 'Walk the Hold',
+    description: 'Physical inspection and walk-through of the hold',
+    icon: Navigation,
+    colors: ['#F59E0B', '#D97706'],
+    iconColor: '#FFF',
+    screen: 'WalkTheHold',
+    dataKey: 'walkTheHold',
+  },
+  {
+    id: 'days-fresh-water',
+    title: 'Days & Fresh Water',
+    description: 'Track fresh water usage and remaining days',
+    icon: Droplets,
+    colors: ['#10B981', '#059669'],
+    iconColor: '#FFF',
+    screen: 'DaysFreshWater',
+    dataKey: 'daysFreshWater',
+  },
 ];
 
 export default function Home() {
   const user = useAuthStore((state) => state.user);
-  const { inspections, isLoading, loadInspections, startInspection } = useInspectionStore();
+  const { inspections, currentInspection, isLoading, loadInspections, startInspection } = useInspectionStore();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
@@ -140,31 +177,45 @@ export default function Home() {
 
   const handleActionPress = (screen: string | null, locked: boolean) => {
     if (!screen || locked) return;
-    setSelectedScreen(screen);
-    setModalVisible(true);
+    navigation.navigate(screen);
+  };
+
+  const inspectionData = currentInspection ? JSON.parse(currentInspection.data || '{}') : {};
+
+  const isStepCompleted = (id: string, dataKey: string) => {
+    if (id === 'pre-inspection') {
+      const subKeys = ['vesselParticulars', 'crewList', 'cleaningEquipment', 'lastCargoHistory'];
+      return subKeys.every(key => {
+        const section = inspectionData[key];
+        return section && Object.keys(section).length > 0 && Object.values(section).some(v => v !== '' && v !== null && v !== undefined);
+      });
+    }
+    return !!inspectionData[dataKey];
   };
 
   const handleSelectVessel = async (vessel: any) => {
     setModalVisible(false);
     if (selectedScreen && user) {
-      const inspectionId = await startInspection(
-        user.id, 
-        vessel.id, 
-        `${vessel.make} ${vessel.model}`, 
-        vessel.plate || 'N/A'
-      );
-      navigation.navigate(selectedScreen, { 
-        vesselId: vessel.id, 
-        vesselName: `${vessel.make} ${vessel.model}`,
-        inspectionId: inspectionId
-      });
+      try {
+        const inspectionId = await startInspection(
+          user.id, 
+          vessel.id, 
+          `${vessel.make} ${vessel.model}`, 
+          vessel.plate || 'N/A'
+        );
+        
+        // Use navigate with the root navigator if possible, or bubbling
+        navigation.navigate(selectedScreen, { 
+          vesselId: vessel.id, 
+          vesselName: `${vessel.make} ${vessel.model}`,
+          inspectionId: inspectionId
+        });
+      } catch (err) {
+        console.error('Failed to start inspection', err);
+      }
     }
   };
 
-  const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vesselId, item])).values());
-  const totalCount = uniqueInspections.length;
-  const pendingCount = uniqueInspections.filter(i => i.status === 'pending' || i.status === 'draft').length;
-  const completedCount = uniqueInspections.filter(i => i.status === 'completed').length;
 
   return (
     <View style={styles.container}>
@@ -188,101 +239,89 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Primary Action Card (Modern Style) */}
-        <View style={styles.section}>
-          <TouchableOpacity 
-            style={styles.heroCardWrapper}
-            onPress={() => navigation.navigate('StartInspection')}
-            activeOpacity={0.9}
-          >
-            <LinearGradient
-              colors={COLORS.primaryGradient}
-              style={styles.heroCard}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.heroCardBgCircle} />
-              <View style={styles.heroCardContent}>
-                <View>
-                  <View style={styles.heroBadge}>
-                    <Sparkles size={12} color={COLORS.primary} />
-                    <Text style={styles.heroBadgeText}>AI POWERED</Text>
-                  </View>
-                  <Text style={styles.heroTitle}>Start New Inspection</Text>
-                  <Text style={styles.heroDesc}>Begin a guided evaluation session</Text>
-                </View>
-                <View style={styles.heroIconBtn}>
-                  <Plus size={28} color={COLORS.secondary} />
-                </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
 
-        {/* Stats Overview (Minimalist) */}
-        <View style={styles.section}>
-          <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <View style={[styles.statIconWrapper, { backgroundColor: '#EFF6FF' }]}>
-                <Layers size={20} color={COLORS.primary} />
-              </View>
-              <Text style={styles.statValue}>{totalCount}</Text>
-              <Text style={styles.statLabel}>Total Audits</Text>
-            </View>
-            <View style={styles.statBox}>
-              <View style={[styles.statIconWrapper, { backgroundColor: '#FFFBEB' }]}>
-                <Activity size={20} color="#F59E0B" />
-              </View>
-              <Text style={styles.statValue}>{pendingCount}</Text>
-              <Text style={styles.statLabel}>In Progress</Text>
-            </View>
-            <View style={styles.statBox}>
-              <View style={[styles.statIconWrapper, { backgroundColor: '#ECFDF5' }]}>
-                <CheckCircle2 size={20} color="#10B981" />
-              </View>
-              <Text style={styles.statValue}>{completedCount}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
-          </View>
-        </View>
 
-        {/* Modules Section (Horizontal Scroll) */}
+        {/* Inspection Sequence Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Modules</Text>
-            <TouchableOpacity>
-              <MoreVertical size={20} color="#94A3B8" />
-            </TouchableOpacity>
+            <View>
+              <Text style={styles.sectionTitle}>Inspection Sequence</Text>
+              <Text style={styles.sectionSubtitle}>Complete the steps below for hold cleaning</Text>
+            </View>
           </View>
-          
-          <View style={styles.modulesGrid}>
+
+          <View style={styles.timelineContainer}>
+            {INSPECTION_OPTIONS.map((item, index) => {
+              const Icon = item.icon;
+              const isLast = index === INSPECTION_OPTIONS.length - 1;
+              const completed = isStepCompleted(item.id, item.dataKey);
+
+              return (
+                <View 
+                  key={item.id}
+                  style={styles.timelineRow}
+                >
+                  <View style={styles.timelineConnector}>
+                    <LinearGradient
+                      colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.timelineIconBg}
+                    >
+                      {completed ? <CheckCircle2 size={24} color="#FFF" /> : <Icon size={22} color={item.iconColor} />}
+                    </LinearGradient>
+                    {!isLast && <View style={[styles.timelineLine, completed && { backgroundColor: '#10B981' }]} />}
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={[styles.timelineCard, completed && styles.completedCard]} 
+                    activeOpacity={item.screen ? 0.8 : 1}
+                    onPress={() => item.screen ? navigation.navigate(item.screen as never) : null}
+                  >
+                    <View style={styles.cardContent}>
+                      <View style={styles.cardTitleRow}>
+                        <Text style={[styles.cardTitle, completed && styles.completedTitle]}>{item.title}</Text>
+                        {completed && (
+                          <View style={styles.statusPill}>
+                            <Text style={styles.statusPillText}>COMPLETED</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.cardDescription}>{item.description}</Text>
+                    </View>
+                    <View style={styles.chevronContainer}>
+                      <ChevronRight size={20} color={completed ? '#10B981' : '#CBD5E1'} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Locked Modules Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Other Modules</Text>
+          <View style={styles.lockedGrid}>
             {[
-              { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Hold Cleaning", desc: "Pre-load prep", color: "#10B981", bg: "#ECFDF5", locked: false },
-              { screen: "BunkerSurvey",     icon: Fuel,           label: "Bunker Survey", desc: "Fuel checking", color: COLORS.primary, bg: "#EFF6FF", locked: false },
-              { screen: "DraftSurvey",      icon: Waves,          label: "Draft Survey", desc: "Weight calc", color: COLORS.primary, bg: "#EFF6FF", locked: false },
+              { screen: "BunkerSurvey", icon: Fuel, label: "Bunker Survey", desc: "Locked", color: "#64748B", bg: "#F1F5F9" },
+              { screen: "DraftSurvey",  icon: Waves, label: "Draft Survey", desc: "Locked", color: "#64748B", bg: "#F1F5F9" },
             ].map((item, index) => (
               <TouchableOpacity 
                 key={index}
-                style={[styles.moduleHCard, item.locked && styles.lockedModule]}
-                onPress={() => {
-                  if (item.screen === 'BunkerSurvey' || item.screen === 'DraftSurvey') {
-                    navigation.navigate(item.screen);
-                  } else {
-                    handleActionPress(item.screen, item.locked);
-                  }
-                }}
-                activeOpacity={item.locked ? 1 : 0.7}
+                style={styles.lockedModuleCard}
+                onPress={() => navigation.navigate(item.screen)}
               >
-                <View style={[styles.moduleHIcon, { backgroundColor: item.bg }]}>
-                  <item.icon size={22} color={item.color} />
+                <View style={[styles.moduleIconSmall, { backgroundColor: item.bg }]}>
+                  <item.icon size={20} color={item.color} />
                 </View>
-                <Text style={styles.moduleHLabel} numberOfLines={1}>{item.label}</Text>
-                <Text style={styles.moduleHDesc} numberOfLines={1}>{item.desc}</Text>
-                {item.locked && (
-                  <View style={styles.lockHBadge}>
+                <View>
+                  <Text style={styles.lockedModuleLabel}>{item.label}</Text>
+                  <View style={styles.lockRow}>
                     <Lock size={12} color="#94A3B8" />
+                    <Text style={styles.lockedText}>Locked</Text>
                   </View>
-                )}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -652,113 +691,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 32,
   },
-  heroCardWrapper: {
-    shadowColor: COLORS.secondary,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  heroCard: {
-    borderRadius: 32,
-    padding: 24,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  heroCardBgCircle: {
-    position: 'absolute',
-    top: -50,
-    right: -20,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  heroCardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  heroBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 16,
-  },
-  heroBadgeText: {
-    color: '#60A5FA',
-    fontSize: 10,
-    fontWeight: '800',
-    marginLeft: 4,
-    letterSpacing: 0.5,
-  },
-  heroTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#F8FAFC',
-    letterSpacing: -0.5,
-  },
-  heroDesc: {
-    fontSize: 14,
-    color: '#94A3B8',
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  heroIconBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 8,
-    elevation: 1,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  statIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '700',
-    marginTop: 4,
-  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -770,6 +702,151 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#0F172A',
     letterSpacing: -0.5,
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  timelineContainer: {
+    paddingTop: 8,
+  },
+  timelineRow: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  timelineConnector: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 48,
+    zIndex: 10,
+  },
+  timelineIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    zIndex: 2,
+  },
+  timelineLine: {
+    position: 'absolute',
+    top: 48,
+    bottom: -20,
+    width: 2,
+    backgroundColor: '#E2E8F0',
+    zIndex: 1,
+    borderRadius: 1,
+  },
+  timelineCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  cardContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+  },
+  cardDescription: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+    fontWeight: '500',
+  },
+  chevronContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completedCard: {
+    borderColor: '#D1FAE5',
+    backgroundColor: '#F8FAFC',
+  },
+  completedTitle: {
+    color: '#059669',
+  },
+  statusPill: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6,
+  },
+  statusPillText: {
+    color: '#10B981',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  lockedGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  lockedModuleCard: {
+    width: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  moduleIconSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  lockedModuleLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  lockRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  lockedText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginLeft: 4,
+    fontWeight: '600',
   },
   seeAllText: {
     color: '#3B82F6',

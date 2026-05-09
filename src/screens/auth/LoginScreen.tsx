@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   StyleSheet, 
   Text, 
@@ -9,16 +9,14 @@ import {
   KeyboardAvoidingView, 
   Platform, 
   ScrollView,
-  Animated,
   Dimensions,
   StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Mail, LogIn, KeyRound, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react-native';
+import { Mail, LogIn, KeyRound, ShieldCheck, ArrowRight } from 'lucide-react-native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { authService } from '../../services/authService';
-import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from '../../constants/theme';
 
 const { width, height } = Dimensions.get('window');
@@ -30,26 +28,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(30));
   
   const navigation = useNavigation<any>();
   const setUser = useAuthStore((state) => state.setUser);
 
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      })
-    ]).start();
-  }, []);
 
   const handleSendOtp = async () => {
     if (!email) {
@@ -93,14 +75,7 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <LinearGradient
-        colors={COLORS.darkGradient}
-        style={StyleSheet.absoluteFill}
-      />
-      
-      {/* Decorative Circles */}
-      <View style={[styles.circle, { top: -height * 0.1, right: -width * 0.2, backgroundColor: COLORS.primary }]} />
-      <View style={[styles.circle, { bottom: -height * 0.1, left: -width * 0.2, backgroundColor: COLORS.secondary }]} />
+      <View style={styles.solidBackground} />
 
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView 
@@ -111,20 +86,12 @@ export default function Login() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Animated.View style={[styles.innerContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <View style={styles.innerContainer}>
               
               <View style={styles.header}>
-                <View style={styles.logoContainer}>
-                  <LinearGradient
-                    colors={COLORS.primaryGradient}
-                    style={styles.logoGradient}
-                  >
-                    <ShieldCheck size={40} color={COLORS.white} />
-                  </LinearGradient>
-                  <View style={styles.sparkleContainer}>
-                    <Sparkles size={16} color="#FBBF24" />
+                  <View style={styles.logoCircle}>
+                    <ShieldCheck size={40} color={COLORS.primary} />
                   </View>
-                </View>
                 <Text style={styles.subtitle}>Precision Vessel Inspections</Text>
               </View>
 
@@ -189,10 +156,7 @@ export default function Login() {
                   onPress={showOtp ? handleVerifyOtp : handleSendOtp}
                   disabled={loading}
                 >
-                  <LinearGradient
-                    colors={COLORS.primaryGradient}
-                    style={styles.buttonGradient}
-                  >
+                  <View style={styles.buttonInner}>
                     {loading ? (
                       <ActivityIndicator color="#fff" size="small" />
                     ) : (
@@ -203,7 +167,7 @@ export default function Login() {
                         <ArrowRight size={20} color="#fff" style={{ marginLeft: 10 }} />
                       </>
                     )}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
 
@@ -212,7 +176,7 @@ export default function Login() {
                 <View style={styles.dot} />
                 <Text style={styles.footerText}>v2.4.0</Text>
               </View>
-            </Animated.View>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -225,12 +189,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.secondary,
   },
-  circle: {
-    position: 'absolute',
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    opacity: 0.15,
+  solidBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#0F172A',
   },
   scrollContent: {
     flexGrow: 1,
@@ -246,32 +207,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoContainer: {
-    position: 'relative',
-    marginBottom: 20,
-  },
-  logoGradient: {
+  logoCircle: {
     width: 80,
     height: 80,
-    borderRadius: 24,
+    borderRadius: 40,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
-    transform: [{ rotate: '-10deg' }],
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  sparkleContainer: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    backgroundColor: COLORS.secondary,
-    padding: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 20,
   },
   title: {
     fontSize: 32,
@@ -376,15 +319,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     height: 60,
     borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  buttonGradient: {
-    flex: 1,
+  buttonInner: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',

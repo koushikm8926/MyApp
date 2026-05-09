@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid, Ship, Fuel, Waves } from 'lucide-react-native';
+import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid, Ship, Fuel, Waves, Lock } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { COLORS } from './src/constants/theme';
 
@@ -102,7 +102,14 @@ function TabNavigator() {
         component={BunkerSurveyScreen}
         options={{
           tabBarLabel: 'Bunker',
-          tabBarIcon: ({ color }) => <Fuel size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <View style={{ position: 'relative' }}>
+              <Fuel size={24} color={color} />
+              <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FFF', borderRadius: 6, padding: 1 }}>
+                <Lock size={10} color="#64748B" />
+              </View>
+            </View>
+          ),
         }}
       />
       <Tab.Screen
@@ -110,7 +117,14 @@ function TabNavigator() {
         component={DraftSurveyScreen}
         options={{
           tabBarLabel: 'Draft',
-          tabBarIcon: ({ color }) => <Waves size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <View style={{ position: 'relative' }}>
+              <Waves size={24} color={color} />
+              <View style={{ position: 'absolute', top: -4, right: -8, backgroundColor: '#FFF', borderRadius: 6, padding: 1 }}>
+                <Lock size={10} color="#64748B" />
+              </View>
+            </View>
+          ),
         }}
       />
       <Tab.Screen

@@ -177,6 +177,10 @@ export const databaseService = {
     }
   },
 
+  async getVessels(userId: string): Promise<any[]> {
+    return this.getVehicles(userId);
+  },
+
   async addVehicle(vehicle: { id: string; userId: string; make: string; model: string; year: string; plate: string }) {
     try {
       await database.write(async () => {
@@ -193,6 +197,10 @@ export const databaseService = {
       console.error('Database Error: Failed to add vehicle', error);
       throw error;
     }
+  },
+
+  async addVessel(vessel: { id: string; userId: string; make: string; model: string; year: string; plate: string }) {
+    return this.addVehicle(vessel);
   },
 };
 
