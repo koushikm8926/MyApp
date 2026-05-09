@@ -19,6 +19,7 @@ import { Mail, LogIn, KeyRound, ShieldCheck, ArrowRight, Sparkles } from 'lucide
 import { useAuthStore } from '../../store/useAuthStore';
 import { authService } from '../../services/authService';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../../constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -93,13 +94,13 @@ export default function Login() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <LinearGradient
-        colors={['#1E293B', '#0F172A']}
+        colors={COLORS.darkGradient}
         style={StyleSheet.absoluteFill}
       />
       
       {/* Decorative Circles */}
-      <View style={[styles.circle, { top: -height * 0.1, right: -width * 0.2, backgroundColor: '#3B82F6' }]} />
-      <View style={[styles.circle, { bottom: -height * 0.1, left: -width * 0.2, backgroundColor: '#6366F1' }]} />
+      <View style={[styles.circle, { top: -height * 0.1, right: -width * 0.2, backgroundColor: COLORS.primary }]} />
+      <View style={[styles.circle, { bottom: -height * 0.1, left: -width * 0.2, backgroundColor: COLORS.secondary }]} />
 
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView 
@@ -115,10 +116,10 @@ export default function Login() {
               <View style={styles.header}>
                 <View style={styles.logoContainer}>
                   <LinearGradient
-                    colors={['#3B82F6', '#6366F1']}
+                    colors={COLORS.primaryGradient}
                     style={styles.logoGradient}
                   >
-                    <ShieldCheck size={40} color="#fff" />
+                    <ShieldCheck size={40} color={COLORS.white} />
                   </LinearGradient>
                   <View style={styles.sparkleContainer}>
                     <Sparkles size={16} color="#FBBF24" />
@@ -189,7 +190,7 @@ export default function Login() {
                   disabled={loading}
                 >
                   <LinearGradient
-                    colors={['#3B82F6', '#2563EB']}
+                    colors={COLORS.primaryGradient}
                     style={styles.buttonGradient}
                   >
                     {loading ? (
@@ -222,7 +223,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: COLORS.secondary,
   },
   circle: {
     position: 'absolute',
@@ -256,7 +257,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     transform: [{ rotate: '-10deg' }],
-    shadowColor: '#3B82F6',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 15,
@@ -266,11 +267,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: '#1E293B',
+    backgroundColor: COLORS.secondary,
     padding: 6,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   title: {
     fontSize: 32,
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#3B82F6',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

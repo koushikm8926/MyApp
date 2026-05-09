@@ -16,12 +16,13 @@ import {
   StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, Lock, TrendingUp, AlertCircle, MoreVertical } from 'lucide-react-native';
+import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, Lock, TrendingUp, AlertCircle, MoreVertical, Fuel, Waves } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
 import { databaseService } from '../../services/databaseService';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from '../../constants/theme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,14 +51,14 @@ export default function Home() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
 
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vessels, setVessels] = useState<any[]>([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [selectedScreen, setSelectedScreen] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [sortBy, setSortBy] = useState('recent');
 
-  const [isAddVehicleVisible, setAddVehicleVisible] = useState(false);
+  const [isAddVesselVisible, setAddVesselVisible] = useState(false);
   const [selectedMake, setSelectedMake] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
   const [customMake, setCustomMake] = useState('');
@@ -73,20 +74,20 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       loadInspections(user.id);
-      loadVehicles(user.id);
+      loadVessels(user.id);
     }
   }, [user]);
 
-  const loadVehicles = async (userId: string) => {
+  const loadVessels = async (userId: string) => {
     try {
-      const data = await databaseService.getVehicles(userId);
-      setVehicles(data);
+      const data = await databaseService.getVessels(userId);
+      setVessels(data);
     } catch (err) {
-      console.error('Failed to load vehicles', err);
+      console.error('Failed to load vessels', err);
     }
   };
 
-  const handleAddVehicle = async () => {
+  const handleAddVessel = async () => {
     const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
     const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
 
@@ -94,7 +95,7 @@ export default function Home() {
     
     setIsSubmitting(true);
     try {
-      await databaseService.addVehicle({
+      await databaseService.addVessel({
         id: Math.random().toString(36).substring(7),
         userId: user.id,
         make: finalMake,
@@ -102,16 +103,16 @@ export default function Home() {
         year,
         plate
       });
-      setAddVehicleVisible(false);
+      setAddVesselVisible(false);
       setSelectedMake('');
       setSelectedModel('');
       setCustomMake('');
       setCustomModel('');
       setYear('');
       setPlate('');
-      if (user) loadVehicles(user.id);
+      if (user) loadVessels(user.id);
     } catch (err) {
-      console.error('Failed to add vehicle', err);
+      console.error('Failed to add vessel', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -123,7 +124,7 @@ export default function Home() {
     return finalMake.trim().length > 0 && finalModel.trim().length > 0;
   };
 
-  const filteredVehicles = vehicles.filter(v => 
+  const filteredVessels = vessels.filter(v => 
     `${v.make} ${v.model}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (v.plate && v.plate.toLowerCase().includes(searchQuery.toLowerCase()))
   ).sort((a, b) => {
@@ -143,32 +144,31 @@ export default function Home() {
     setModalVisible(true);
   };
 
-  const handleSelectVehicle = async (vehicle: any) => {
+  const handleSelectVessel = async (vessel: any) => {
     setModalVisible(false);
     if (selectedScreen && user) {
       const inspectionId = await startInspection(
         user.id, 
-        vehicle.id, 
-        `${vehicle.make} ${vehicle.model}`, 
-        vehicle.plate || 'N/A'
+        vessel.id, 
+        `${vessel.make} ${vessel.model}`, 
+        vessel.plate || 'N/A'
       );
       navigation.navigate(selectedScreen, { 
-        vehicleId: vehicle.id, 
-        vehicleName: `${vehicle.make} ${vehicle.model}`,
+        vesselId: vessel.id, 
+        vesselName: `${vessel.make} ${vessel.model}`,
         inspectionId: inspectionId
       });
     }
   };
 
-  const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vehicleId, item])).values());
-  const recentInspections = uniqueInspections.slice(0, 3);
+  const uniqueInspections = Array.from(new Map(inspections.map(item => [item.vesselId, item])).values());
   const totalCount = uniqueInspections.length;
   const pendingCount = uniqueInspections.filter(i => i.status === 'pending' || i.status === 'draft').length;
   const completedCount = uniqueInspections.filter(i => i.status === 'completed').length;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
         {/* Header Section */}
@@ -196,7 +196,7 @@ export default function Home() {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={['#1E293B', '#0F172A']}
+              colors={COLORS.primaryGradient}
               style={styles.heroCard}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -205,14 +205,14 @@ export default function Home() {
               <View style={styles.heroCardContent}>
                 <View>
                   <View style={styles.heroBadge}>
-                    <Sparkles size={12} color="#3B82F6" />
+                    <Sparkles size={12} color={COLORS.primary} />
                     <Text style={styles.heroBadgeText}>AI POWERED</Text>
                   </View>
                   <Text style={styles.heroTitle}>Start New Inspection</Text>
                   <Text style={styles.heroDesc}>Begin a guided evaluation session</Text>
                 </View>
                 <View style={styles.heroIconBtn}>
-                  <Plus size={28} color="#0F172A" />
+                  <Plus size={28} color={COLORS.secondary} />
                 </View>
               </View>
             </LinearGradient>
@@ -224,7 +224,7 @@ export default function Home() {
           <View style={styles.statsContainer}>
             <View style={styles.statBox}>
               <View style={[styles.statIconWrapper, { backgroundColor: '#EFF6FF' }]}>
-                <Layers size={20} color="#3B82F6" />
+                <Layers size={20} color={COLORS.primary} />
               </View>
               <Text style={styles.statValue}>{totalCount}</Text>
               <Text style={styles.statLabel}>Total Audits</Text>
@@ -258,15 +258,15 @@ export default function Home() {
           <View style={styles.modulesGrid}>
             {[
               { screen: "PreHoldCleaning",  icon: ClipboardCheck, label: "Hold Cleaning", desc: "Pre-load prep", color: "#10B981", bg: "#ECFDF5", locked: false },
-              { screen: null,               icon: Lock,           label: "Bunker Survey", desc: "Fuel checking", color: "#64748B", bg: "#F1F5F9", locked: true },
-              { screen: null,               icon: Ship,           label: "Draft Survey", desc: "Weight calc", color: "#64748B", bg: "#F1F5F9", locked: true },
+              { screen: "BunkerSurvey",     icon: Fuel,           label: "Bunker Survey", desc: "Fuel checking", color: COLORS.primary, bg: "#EFF6FF", locked: false },
+              { screen: "DraftSurvey",      icon: Waves,          label: "Draft Survey", desc: "Weight calc", color: COLORS.primary, bg: "#EFF6FF", locked: false },
             ].map((item, index) => (
               <TouchableOpacity 
                 key={index}
                 style={[styles.moduleHCard, item.locked && styles.lockedModule]}
                 onPress={() => {
-                  if (item.screen === 'Camera') {
-                    navigation.navigate('Tabs', { screen: 'Camera' });
+                  if (item.screen === 'BunkerSurvey' || item.screen === 'DraftSurvey') {
+                    navigation.navigate(item.screen);
                   } else {
                     handleActionPress(item.screen, item.locked);
                   }
@@ -288,65 +288,10 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Recent Activity Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('History')}>
-              <Text style={styles.seeAllText}>See all</Text>
-            </TouchableOpacity>
-          </View>
-
-          {recentInspections.length > 0 ? (
-            <View style={styles.activityList}>
-              {recentInspections.map((item, index) => (
-                <TouchableOpacity 
-                  key={item.id}
-                  style={styles.timelineItem}
-                  onPress={() => navigation.navigate('Inspection', { id: item.id })}
-                >
-                  <View style={styles.timelineLeft}>
-                    <View style={[styles.timelineDot, { backgroundColor: item.status === 'completed' ? '#10B981' : '#F59E0B' }]} />
-                    {index !== recentInspections.length - 1 && <View style={styles.timelineLine} />}
-                  </View>
-                  
-                  <View style={styles.timelineContent}>
-                    <View style={styles.timelineHeader}>
-                      <Text style={styles.timelineTitle}>{item.vehicleName}</Text>
-                      <Text style={styles.timelineTime}>
-                        {new Date(item.createdAt).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    
-                    <View style={styles.timelineFooter}>
-                      <View style={styles.timelineBadge}>
-                        <Hash size={12} color="#64748B" />
-                        <Text style={styles.timelineBadgeText}>{item.vehiclePlate}</Text>
-                      </View>
-                      <View style={[styles.statusPill, { backgroundColor: item.status === 'completed' ? '#ECFDF5' : '#FFFBEB' }]}>
-                        <Text style={[styles.statusPillText, { color: item.status === 'completed' ? '#10B981' : '#F59E0B' }]}>
-                          {item.status.toUpperCase()}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyStateModern}>
-              <View style={styles.emptyStateIconBg}>
-                <ClipboardCheck size={32} color="#94A3B8" />
-              </View>
-              <Text style={styles.emptyStateModernText}>No recent activity</Text>
-              <Text style={styles.emptyStateModernSub}>Your inspections will appear here</Text>
-            </View>
-          )}
-        </View>
 
       </ScrollView>
 
-      {/* Vehicle Selection Modal */}
+      {/* Vessel Selection Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -358,13 +303,13 @@ export default function Home() {
             <View style={styles.modalIndicator} />
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Select Vehicle</Text>
+                <Text style={styles.modalTitle}>Select Vessel</Text>
                 <Text style={styles.modalSubtitle}>Identify the target for inspection</Text>
               </View>
               <View style={styles.modalHeaderActions}>
                 <TouchableOpacity 
                   style={styles.headerAddBtn} 
-                  onPress={() => setAddVehicleVisible(true)}
+                  onPress={() => setAddVesselVisible(true)}
                 >
                   <Plus size={20} color="#3B82F6" />
                 </TouchableOpacity>
@@ -374,13 +319,13 @@ export default function Home() {
               </View>
             </View>
 
-            {vehicles.length > 0 && (
+            {vessels.length > 0 && (
               <View style={styles.modalSearchContainer}>
                 <View style={styles.modalSearchBar}>
                   <Search size={18} color="#94A3B8" />
                   <TextInput
                     style={styles.modalSearchInput}
-                    placeholder="Search vehicles..."
+                    placeholder="Search vessels..."
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     placeholderTextColor="#94A3B8"
@@ -392,37 +337,37 @@ export default function Home() {
               </View>
             )}
 
-            {vehicles.length > 0 ? (
+            {vessels.length > 0 ? (
               <FlatList
-                data={filteredVehicles}
+                data={filteredVessels}
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
-                style={styles.vehicleList}
+                style={styles.vesselList}
                 renderItem={({ item }) => (
                   <TouchableOpacity 
-                    style={styles.vehicleItem}
-                    onPress={() => handleSelectVehicle(item)}
+                    style={styles.vesselItem}
+                    onPress={() => handleSelectVessel(item)}
                   >
-                    <View style={styles.vehicleIconBg}>
+                    <View style={styles.vesselIconBg}>
                       <Car size={24} color="#3B82F6" />
                     </View>
-                    <View style={styles.vehicleInfo}>
-                      <Text style={styles.vehicleMakeModel}>{item.make} {item.model}</Text>
-                      <Text style={styles.vehiclePlate}>{item.plate || 'No Plate'} • {item.year || 'N/A'}</Text>
+                    <View style={styles.vesselInfo}>
+                      <Text style={styles.vesselMakeModel}>{item.make} {item.model}</Text>
+                      <Text style={styles.vesselPlate}>{item.plate || 'No Plate'} • {item.year || 'N/A'}</Text>
                     </View>
                     <ChevronRight size={20} color="#CBD5E1" />
                   </TouchableOpacity>
                 )}
               />
             ) : (
-              <View style={styles.emptyVehicles}>
+              <View style={styles.emptyVessels}>
                 <Car size={48} color="#CBD5E1" style={{ marginBottom: 16 }} />
-                <Text style={styles.emptyVehiclesText}>No vehicles registered yet</Text>
+                <Text style={styles.emptyVesselsText}>No vessels registered yet</Text>
                 <TouchableOpacity 
-                  style={styles.addVehicleBtn}
-                  onPress={() => setAddVehicleVisible(true)}
+                  style={styles.addVesselBtn}
+                  onPress={() => setAddVesselVisible(true)}
                 >
-                  <Text style={styles.addVehicleBtnText}>Register Your First Vehicle</Text>
+                  <Text style={styles.addVesselBtnText}>Register Your First Vessel</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -430,12 +375,12 @@ export default function Home() {
         </View>
       </Modal>
 
-      {/* Add Vehicle Modal */}
+      {/* Add Vessel Modal */}
       <Modal
         animationType="slide"
         transparent={true}
-        visible={isAddVehicleVisible}
-        onRequestClose={() => setAddVehicleVisible(false)}
+        visible={isAddVesselVisible}
+        onRequestClose={() => setAddVesselVisible(false)}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -445,10 +390,10 @@ export default function Home() {
             <View style={styles.modalIndicator} />
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Register Vehicle</Text>
+                <Text style={styles.modalTitle}>Register Vessel</Text>
                 <Text style={styles.modalSubtitle}>Enter details for the permanent record</Text>
               </View>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setAddVehicleVisible(false)}>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setAddVesselVisible(false)}>
                 <X size={24} color="#64748B" />
               </TouchableOpacity>
             </View>
@@ -619,11 +564,11 @@ export default function Home() {
 
                 <TouchableOpacity 
                   style={[styles.submitButton, !isFormValid() && styles.submitButtonDisabled]}
-                  onPress={handleAddVehicle}
+                  onPress={handleAddVessel}
                   disabled={!isFormValid() || isSubmitting}
                 >
                   <LinearGradient
-                    colors={!isFormValid() ? ['#E2E8F0', '#E2E8F0'] : ['#3B82F6', '#2563EB']}
+                    colors={!isFormValid() ? ['#E2E8F0', '#E2E8F0'] : COLORS.primaryGradient}
                     style={styles.submitGradient}
                   >
                     {isSubmitting ? (
@@ -645,7 +590,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingBottom: 120,
@@ -668,7 +613,7 @@ const styles = StyleSheet.create({
   userNameText: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#0F172A',
+    color: COLORS.secondary,
     marginTop: 2,
     letterSpacing: -0.5,
   },
@@ -708,7 +653,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   heroCardWrapper: {
-    shadowColor: '#0F172A',
+    shadowColor: COLORS.secondary,
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -876,120 +821,6 @@ const styles = StyleSheet.create({
     top: 16,
     right: 16,
   },
-  activityList: {
-    backgroundColor: '#FFF',
-    borderRadius: 28,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  timelineItem: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  timelineLeft: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 12,
-  },
-  timelineDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#3B82F6',
-    zIndex: 2,
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    marginTop: -4,
-    marginBottom: -24,
-    zIndex: 1,
-  },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 4,
-  },
-  timelineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  timelineTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-    flex: 1,
-  },
-  timelineTime: {
-    fontSize: 12,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  timelineFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  timelineBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  timelineBadgeText: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '700',
-    marginLeft: 4,
-  },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusPillText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  emptyStateModern: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 40,
-    backgroundColor: '#FFF',
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    borderStyle: 'dashed',
-  },
-  emptyStateIconBg: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#F8FAFC',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyStateModernText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  emptyStateModernSub: {
-    fontSize: 13,
-    color: '#94A3B8',
-    marginTop: 4,
-  },
   // Modal Styles remain essentially the same but polished
   modalOverlay: {
     flex: 1,
@@ -1083,10 +914,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  vehicleList: {
+  vesselList: {
     maxHeight: height * 0.5,
   },
-  vehicleItem: {
+  vesselItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFF',
@@ -1096,7 +927,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9',
   },
-  vehicleIconBg: {
+  vesselIconBg: {
     width: 52,
     height: 52,
     borderRadius: 16,
@@ -1105,38 +936,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
   },
-  vehicleInfo: {
+  vesselInfo: {
     flex: 1,
   },
-  vehicleMakeModel: {
+  vesselMakeModel: {
     fontSize: 16,
     fontWeight: '800',
     color: '#0F172A',
   },
-  vehiclePlate: {
+  vesselPlate: {
     fontSize: 13,
     color: '#64748B',
     marginTop: 4,
     fontWeight: '600',
   },
-  emptyVehicles: {
+  emptyVessels: {
     padding: 40,
     alignItems: 'center',
   },
-  emptyVehiclesText: {
+  emptyVesselsText: {
     fontSize: 16,
     color: '#64748B',
     fontWeight: '600',
     textAlign: 'center',
   },
-  addVehicleBtn: {
+  addVesselBtn: {
     marginTop: 20,
     backgroundColor: '#3B82F6',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 16,
   },
-  addVehicleBtnText: {
+  addVesselBtnText: {
     color: '#FFF',
     fontSize: 14,
     fontWeight: '800',

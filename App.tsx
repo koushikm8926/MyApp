@@ -4,8 +4,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid, Ship } from 'lucide-react-native';
+import { Home, Car, ClipboardList, Settings as SettingsIcon, LayoutGrid, Ship, Fuel, Waves } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { COLORS } from './src/constants/theme';
 
 // Stores
 import { useAuthStore } from './src/store/useAuthStore';
@@ -16,8 +17,8 @@ import LoginScreen from './src/screens/auth/LoginScreen';
 
 // Screens - Tabs
 import HomeScreen from './src/screens/tabs/HomeScreen';
-import HistoryScreen from './src/screens/tabs/HistoryScreen';
-import VehiclesScreen from './src/screens/tabs/VehiclesScreen';
+import BunkerSurveyScreen from './src/screens/tabs/BunkerSurveyScreen';
+import DraftSurveyScreen from './src/screens/tabs/DraftSurveyScreen';
 import SettingsScreen from './src/screens/tabs/SettingsScreen';
 
 
@@ -55,7 +56,7 @@ function TabNavigator() {
           backgroundColor: 'transparent',
           borderRadius: 32,
           height: 64,
-          shadowColor: '#0F172A',
+          shadowColor: COLORS.secondary,
           shadowOffset: { width: 0, height: 12 },
           shadowOpacity: 0.15,
           shadowRadius: 25,
@@ -75,8 +76,8 @@ function TabNavigator() {
             end={{ x: 1, y: 1 }}
           />
         ),
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textMuted,
         tabBarLabelStyle: {
           fontWeight: '700',
           fontSize: 10,
@@ -97,19 +98,19 @@ function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Vehicles"
-        component={VehiclesScreen}
+        name="BunkerSurvey"
+        component={BunkerSurveyScreen}
         options={{
-          tabBarLabel: 'Fleet',
-          tabBarIcon: ({ color }) => <Ship size={24} color={color} />,
+          tabBarLabel: 'Bunker',
+          tabBarIcon: ({ color }) => <Fuel size={24} color={color} />,
         }}
       />
       <Tab.Screen
-        name="History"
-        component={HistoryScreen}
+        name="DraftSurvey"
+        component={DraftSurveyScreen}
         options={{
-          tabBarLabel: 'History',
-          tabBarIcon: ({ color }) => <ClipboardList size={24} color={color} />,
+          tabBarLabel: 'Draft',
+          tabBarIcon: ({ color }) => <Waves size={24} color={color} />,
         }}
       />
       <Tab.Screen

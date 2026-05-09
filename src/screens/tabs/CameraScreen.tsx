@@ -6,6 +6,7 @@ import { useInspectionStore } from '../../store/useInspectionStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Play, Sparkles, Lightbulb, Zap, ShieldCheck } from 'lucide-react-native';
 import { LinearGradient } from 'react-native-linear-gradient';
+import { COLORS } from '../../constants/theme';
 
 export default function StartInspection() {
   const [vehicleName, setVehicleName] = useState('');
@@ -50,7 +51,7 @@ export default function StartInspection() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.iconCircle}>
-            <Sparkles size={32} color="#0787e2" />
+            <Sparkles size={32} color={COLORS.primary} />
           </View>
           <Text style={styles.title}>New Inspection</Text>
           <Text style={styles.subtitle}>Ready to evaluate another vehicle? Let's get the basic details first.</Text>
@@ -75,7 +76,7 @@ export default function StartInspection() {
               <ActivityIndicator color="#fff" />
             ) : (
               <LinearGradient
-                colors={vehicleName ? ['#0787e2', '#0787e2'] : ['#E2E8F0', '#E2E8F0']}
+                colors={vehicleName ? COLORS.primaryGradient : ['#E2E8F0', '#E2E8F0']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.buttonGradient}
@@ -106,7 +107,7 @@ export default function StartInspection() {
           <TipItem 
             icon={Sparkles} 
             text="Follow the on-screen guides for the best perspectives." 
-            color="#0787e2"
+            color={COLORS.primary}
           />
         </View>
         </ScrollView>
@@ -118,7 +119,7 @@ export default function StartInspection() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     padding: 24,
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#1E293B',
+    color: COLORS.secondary,
     letterSpacing: -1,
   },
   subtitle: {
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: COLORS.secondary,
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 20,
     fontSize: 16,
-    color: '#1E293B',
+    color: COLORS.secondary,
     fontWeight: '600',
     marginBottom: 24,
   },

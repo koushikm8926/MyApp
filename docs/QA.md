@@ -63,3 +63,32 @@ The `src/database` folder contains the core architecture for WatermelonDB. It sp
 
 3. **`index.ts` (The Engine):**
    This is the initialization file. It imports your `schema.ts`, imports all your `models`, and binds them to the `SQLiteAdapter`. It exports the final `database` object, which is the actual live connection used by the rest of the app (like `databaseService.ts`) to read, write, and query data.
+
+
+# Application Data Storage & Architecture (Q&A)
+
+This document outlines how the application handles data storage, offline persistence, and file formats.
+
+## 1. Where is the "In-Progress" data stored?
+While an inspector is actively working on a sublocation (filling out attributes, adding comments, etc.), the data is stored in **AsyncStorage**.
+- **Android:** Stored in an internal SQLite database at `/data/data/com.myapp/databases/RKStorage`.
+- **iOS:** Stored in the app's `Documents` folder as a serialized plist file.
+- **Format:** Serialized **JSON Strings**.
+- **Benefit:** This allows for extremely fast auto-saving (on every keystroke) without the overhead of complex database transactions, ensuring no work is lost if the app is closed.
+
+## 2. How are Inspection Photos handled?
+Photos captured during the inspection are saved directly to the device's filesystem.
+- **Location (Android):** Typically `/data/user/0/com.myapp/cache/` or `/data/user/0/com.myapp/files/`.
+- **Location (iOS):** The app's `Library/Caches` or `Documents` directory.
+- **Format:** Standard **JPEG (.jpg)**.
+- **Data Linkage:** The database does **not** store the image data itself (to keep the database small and fast). Instead, it stores the **File Path (URI)** pointing to the image on the disk.
+
+## 3. Where are Official Records kept?
+Once an inspection is validated or completed, the data is moved to the primary application database.
+- **Technology:** **WatermelonDB (built on SQLite)**.
+- **Location:** A persistent `.db` file inside the app's internal storage.
+- **Format:** **Relational Tables** (SQL).
+- **Structure:** Data is organized into structured tables (e.g., `Inspections`, `Photos`, `Vehicles`), which allows for advanced filtering, searching, and reliable data synchronization.
+
+## 4. Summary of Data Security
+All application data is stored **offline and locally** on the device within the "App Sandbox." This means the data is private and cannot be accessed by other applications on the device, ensuring a secure environment for sensitive inspection data.

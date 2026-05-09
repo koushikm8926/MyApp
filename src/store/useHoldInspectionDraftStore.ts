@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Mandatory shot carousel: URI per hold × shot slot. */
 export type MandatoryShotUrisByHold = Record<string, Record<string, string>>;
@@ -32,34 +34,42 @@ interface HoldInspectionDraftState {
   upsertSublocationDraft: (key: string, payload: SublocationDraftPayload) => void;
 }
 
-export const useHoldInspectionDraftStore = create<HoldInspectionDraftState>((set) => ({
-  mandatoryShotUrisByHold: {},
-  sublocationDraftByKey: {},
+export const useHoldInspectionDraftStore = create<HoldInspectionDraftState>()(
+  persist(
+    (set) => ({
+      mandatoryShotUrisByHold: {},
+      sublocationDraftByKey: {},
 
-  setMandatoryShotUri: (holdId, shotId, uri) => {
-    if (!holdId || !shotId || !uri) return;
-    set((state) => ({
-      mandatoryShotUrisByHold: {
-        ...state.mandatoryShotUrisByHold,
-        [holdId]: {
-          ...(state.mandatoryShotUrisByHold[holdId] ?? {}),
-          [shotId]: uri,
-        },
+      setMandatoryShotUri: (holdId, shotId, uri) => {
+        if (!holdId || !shotId || !uri) return;
+        set((state) => ({
+          mandatoryShotUrisByHold: {
+            ...state.mandatoryShotUrisByHold,
+            [holdId]: {
+              ...(state.mandatoryShotUrisByHold[holdId] ?? {}),
+              [shotId]: uri,
+            },
+          },
+        }));
       },
-    }));
-  },
 
-  upsertSublocationDraft: (key, payload) =>
-    set((state) => ({
-      sublocationDraftByKey: {
-        ...state.sublocationDraftByKey,
-        [key]: {
-          attributes: payload.attributes.map((a) => ({ ...a })),
-          comment: payload.comment,
-        },
-      },
-    })),
-}));
+      upsertSublocationDraft: (key, payload) =>
+        set((state) => ({
+          sublocationDraftByKey: {
+            ...state.sublocationDraftByKey,
+            [key]: {
+              attributes: payload.attributes.map((a) => ({ ...a })),
+              comment: payload.comment,
+            },
+          },
+        })),
+    }),
+    {
+      name: 'hold-inspection-draft-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
 
 export function getSublocationDraftKey(
   holdId: string,

@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /** Matches sublocation count used in ZoneDetailsScreen (e.g. Hatch Cover zone). */
 export const SUBLOCATIONS_PER_ZONE = 11;
@@ -12,23 +14,31 @@ interface ZoneProgressState {
   markSublocationComplete: (zoneId: string, sublocationId: string) => void;
 }
 
-export const useZoneProgressStore = create<ZoneProgressState>((set) => ({
-  completedByZone: {},
+export const useZoneProgressStore = create<ZoneProgressState>()(
+  persist(
+    (set) => ({
+      completedByZone: {},
 
-  markSublocationComplete: (zoneId, sublocationId) => {
-    if (!zoneId || !sublocationId) return;
-    set((state) => {
-      const prev = state.completedByZone[zoneId] ?? [];
-      if (prev.includes(sublocationId)) return state;
-      return {
-        completedByZone: {
-          ...state.completedByZone,
-          [zoneId]: [...prev, sublocationId],
-        },
-      };
-    });
-  },
-}));
+      markSublocationComplete: (zoneId, sublocationId) => {
+        if (!zoneId || !sublocationId) return;
+        set((state) => {
+          const prev = state.completedByZone[zoneId] ?? [];
+          if (prev.includes(sublocationId)) return state;
+          return {
+            completedByZone: {
+              ...state.completedByZone,
+              [zoneId]: [...prev, sublocationId],
+            },
+          };
+        });
+      },
+    }),
+    {
+      name: 'zone-progress-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
 
 export function getZoneCompletedIds(
   completedByZone: Record<string, string[]>,
