@@ -16,7 +16,7 @@ import {
   StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, Lock, TrendingUp, AlertCircle, MoreVertical, Fuel, Waves, FileText, PaintBucket } from 'lucide-react-native';
+import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, TrendingUp, AlertCircle, MoreVertical, FileText, PaintBucket } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -299,33 +299,7 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Locked Modules Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Other Modules</Text>
-          <View style={styles.lockedGrid}>
-            {[
-              { screen: "BunkerSurvey", icon: Fuel, label: "Bunker Survey", desc: "Locked", color: "#64748B", bg: "#F1F5F9" },
-              { screen: "DraftSurvey",  icon: Waves, label: "Draft Survey", desc: "Locked", color: "#64748B", bg: "#F1F5F9" },
-            ].map((item, index) => (
-              <TouchableOpacity 
-                key={index}
-                style={styles.lockedModuleCard}
-                onPress={() => navigation.navigate(item.screen)}
-              >
-                <View style={[styles.moduleIconSmall, { backgroundColor: item.bg }]}>
-                  <item.icon size={20} color={item.color} />
-                </View>
-                <View>
-                  <Text style={styles.lockedModuleLabel}>{item.label}</Text>
-                  <View style={styles.lockRow}>
-                    <Lock size={12} color="#94A3B8" />
-                    <Text style={styles.lockedText}>Locked</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+
 
 
       </ScrollView>
