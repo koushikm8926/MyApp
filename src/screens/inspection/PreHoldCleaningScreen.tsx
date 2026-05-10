@@ -46,7 +46,7 @@ const OPTIONS = [
     icon: Navigation,
     colors: ['#F59E0B', '#D97706'],
     iconColor: '#FFF',
-    screen: 'WalkTheHold',
+    screen: 'HoldDetails',
     dataKey: 'walkTheHold',
   },
   {
