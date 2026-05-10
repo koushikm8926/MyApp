@@ -216,6 +216,38 @@ export default function Home() {
     }
   };
 
+  const renderSpiderCard = (item: any, isCenter = false) => {
+    const Icon = item.icon;
+    const completed = isStepCompleted(item.id, item.dataKey);
+    
+    return (
+      <TouchableOpacity 
+        key={item.id}
+        style={[
+          styles.spiderCard, 
+          isCenter && styles.spiderCardCenter,
+          completed && styles.completedCard
+        ]} 
+        onPress={() => navigation.navigate(item.screen)}
+        activeOpacity={0.7}
+      >
+        <LinearGradient
+          colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
+          style={[styles.spiderIconBg, isCenter && styles.spiderIconBgCenter]}
+        >
+          {completed ? <CheckCircle2 size={isCenter ? 28 : 22} color="#FFF" /> : <Icon size={isCenter ? 28 : 22} color={item.iconColor} />}
+        </LinearGradient>
+        <Text style={[styles.spiderCardTitle, completed && styles.completedTitle]} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {completed && (
+          <View style={styles.spiderCompletedBadge}>
+            <CheckCircle2 size={10} color="#FFF" />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -233,74 +265,62 @@ export default function Home() {
               <Image 
                 source={{ uri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=256&h=256' }} 
                 style={styles.profileAvatar} 
+                accessibilityLabel="Profile Picture"
               />
               <View style={styles.onlineBadge} />
             </TouchableOpacity>
           </View>
+
+          {/* Moved Title & Subtitle here */}
+          <View style={styles.headerTextSection}>
+            <Text style={styles.sectionTitle}>Inspection Sequence</Text>
+            <Text style={styles.sectionSubtitle}>Complete the steps below for hold cleaning</Text>
+          </View>
         </View>
 
+        {/* Center the Inspection Section in remaining space */}
+        <View style={styles.mainContent}>
+          {/* Inspection Sequence Section */}
+          <View style={styles.section}>
 
+          <View style={styles.spiderContainer}>
+            {/* Connection Lines (Plus Shape) */}
+            <View style={styles.spiderLinesContainer}>
+              <View style={styles.plusLineVertical} />
+              <View style={styles.plusLineHorizontal} />
+            </View>
 
-        {/* Inspection Sequence Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Inspection Sequence</Text>
-              <Text style={styles.sectionSubtitle}>Complete the steps below for hold cleaning</Text>
+            <View style={styles.plusGrid}>
+              {/* Top Row */}
+              <View style={styles.plusRowTop}>
+                <View style={styles.plusSideCard}>
+                  {renderSpiderCard(INSPECTION_OPTIONS[0])}
+                </View>
+              </View>
+
+              {/* Middle Row: Left, Center, Right */}
+              <View style={styles.plusRowMiddle}>
+                <View style={styles.plusSideCard}>
+                  {renderSpiderCard(INSPECTION_OPTIONS[3])}
+                </View>
+                <View style={styles.plusSideCard}>
+                  {renderSpiderCard(INSPECTION_OPTIONS[2])}
+                </View>
+                <View style={styles.plusSideCard}>
+                  {renderSpiderCard(INSPECTION_OPTIONS[1])}
+                </View>
+              </View>
+
+              {/* Bottom Row */}
+              <View style={styles.plusRowBottom}>
+                <View style={styles.plusSideCard}>
+                  {renderSpiderCard(INSPECTION_OPTIONS[4])}
+                </View>
+              </View>
             </View>
           </View>
-
-          <View style={styles.timelineContainer}>
-            {INSPECTION_OPTIONS.map((item, index) => {
-              const Icon = item.icon;
-              const isLast = index === INSPECTION_OPTIONS.length - 1;
-              const completed = isStepCompleted(item.id, item.dataKey);
-
-              return (
-                <View 
-                  key={item.id}
-                  style={styles.timelineRow}
-                >
-                  <View style={styles.timelineConnector}>
-                    <LinearGradient
-                      colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.timelineIconBg}
-                    >
-                      {completed ? <CheckCircle2 size={24} color="#FFF" /> : <Icon size={22} color={item.iconColor} />}
-                    </LinearGradient>
-                    {!isLast && <View style={[styles.timelineLine, completed && { backgroundColor: '#10B981' }]} />}
-                  </View>
-                  
-                  <TouchableOpacity 
-                    style={[styles.timelineCard, completed && styles.completedCard]} 
-                    activeOpacity={item.screen ? 0.8 : 1}
-                    onPress={() => item.screen ? navigation.navigate(item.screen as never) : null}
-                  >
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardTitleRow}>
-                        <Text style={[styles.cardTitle, completed && styles.completedTitle]}>{item.title}</Text>
-                        {completed && (
-                          <View style={styles.statusPill}>
-                            <Text style={styles.statusPillText}>COMPLETED</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={styles.cardDescription}>{item.description}</Text>
-                    </View>
-                    <View style={styles.chevronContainer}>
-                      <ChevronRight size={20} color={completed ? '#10B981' : '#CBD5E1'} />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
         </View>
-
-
-
+      </View>
 
       </ScrollView>
 
@@ -606,16 +626,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   scrollContent: {
-    paddingBottom: 120,
+    flexGrow: 1,
+  },
+  mainContent: {
+    flex: 1,
+    marginTop: -10, // Lift the section up
   },
   header: {
     paddingHorizontal: 24,
-    marginBottom: 20,
+    marginBottom: 5,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerTextSection: {
+    marginTop: 20,
   },
   greetingText: {
     fontSize: 14,
@@ -783,95 +810,116 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
-  lockedGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  lockedModuleCard: {
-    width: '48%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    padding: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-  },
-  moduleIconSmall: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+
+  // Plus Layout Styles
+  spiderContainer: {
+    width: '100%',
+    height: (width * 0.3) * 3 + 40, // 3 boxes + 2 gaps of 20
+    marginTop: 5,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    position: 'relative',
   },
-  lockedModuleLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#475569',
-  },
-  lockRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  lockedText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginLeft: 4,
-    fontWeight: '600',
-  },
-  seeAllText: {
-    color: '#3B82F6',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  modulesGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  moduleHCard: {
-    width: '31%',
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  lockedModule: {
-    opacity: 0.7,
-    backgroundColor: '#F8FAFC',
-  },
-  moduleHIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  spiderLinesContainer: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    zIndex: 0,
   },
-  moduleHLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  moduleHDesc: {
-    fontSize: 10,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  lockHBadge: {
+  plusLineVertical: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    width: 2,
+    height: '75%',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 1,
   },
+  plusLineHorizontal: {
+    position: 'absolute',
+    width: '85%',
+    height: 2,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 1,
+  },
+  plusGrid: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'space-between',
+    paddingVertical: 0,
+    zIndex: 1,
+  },
+  plusRowTop: {
+    alignItems: 'center',
+  },
+  plusRowMiddle: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusRowBottom: {
+    alignItems: 'center',
+  },
+  plusSideCard: {
+    width: width * 0.3,
+    height: width * 0.3,
+    marginHorizontal: 10, // horizontal gap / 2
+  },
+  spiderCard: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 15,
+    elevation: 4,
+  },
+  spiderCardCenter: {
+    // Kept for function signature compatibility but empty as all cards are now uniform
+  },
+  spiderIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  spiderIconBgCenter: {
+    // Kept for function signature compatibility but same as spiderIconBg
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  spiderCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#334155',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  spiderCompletedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#10B981',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+
   // Modal Styles remain essentially the same but polished
   modalOverlay: {
     flex: 1,
