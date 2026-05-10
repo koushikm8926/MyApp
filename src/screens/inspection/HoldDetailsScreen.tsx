@@ -86,17 +86,7 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
     <View style={styles.holdPage}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Hold Info Card */}
-        <View style={styles.holdInfoCard}>
-          <View style={styles.holdInfoText}>
-            <Text style={styles.holdSubtitle}>Current Status</Text>
-            <Text style={styles.holdTitleDisplay}>{hold.title}</Text>
-            <Text style={styles.holdDescriptionDisplay}>{hold.description}</Text>
-          </View>
-          <View style={styles.holdProgressBadge}>
-             <Text style={styles.holdProgressText}>{Math.round((completedShots / 5) * 100)}%</Text>
-          </View>
-        </View>
+        {/* Removed Hold Info Card per user request */}
 
         {/* Mandatory Shots Section */}
         <View style={styles.section}>
@@ -275,9 +265,7 @@ export default function HoldDetailsScreen() {
             <Text style={styles.headerTitle}>Hold Inspection</Text>
             <Text style={styles.headerSubtitle}>Vessel Walkthrough</Text>
           </View>
-          <TouchableOpacity style={styles.infoButton} activeOpacity={0.8}>
-            <Info size={22} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={{ width: 44 }} />
         </View>
 
         {/* Hold Selector Tabs */}
@@ -340,8 +328,6 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 0,
     paddingBottom: 0,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
     elevation: 10,
     shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 10 },
