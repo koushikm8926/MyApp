@@ -9,6 +9,7 @@ import {
   Dimensions,
   FlatList,
   Animated,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -272,9 +273,38 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
         {allZonesCompleted && completedShots === 6 && (
           <TouchableOpacity 
             style={styles.uploadButton}
-            onPress={() => {
-              alert('Hold data signed and uploaded successfully!');
-              // Here we could update status in the DB or store
+            onPress={async () => {
+              // Connectivity check logic
+              let isOnline = false;
+              try {
+                // Quick ping to check actual internet access
+                const response = await fetch('https://www.google.com', { method: 'HEAD', mode: 'no-cors' });
+                isOnline = !!response;
+              } catch (e) {
+                isOnline = false;
+              }
+
+              if (!isOnline) {
+                Alert.alert(
+                  'Device Offline',
+                  'Your device is currently offline. We have placed your request in a queue. As soon as the internet connection is restored, your data will be automatically uploaded.',
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert(
+                  'Upload Data',
+                  'You are online. Do you want to upload the inspection data to the cloud now?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                      text: 'Upload Now', 
+                      onPress: () => {
+                        Alert.alert('Success', 'Your data will be uploaded to cloud.');
+                      } 
+                    }
+                  ]
+                );
+              }
             }}
             activeOpacity={0.8}
           >

@@ -10,6 +10,7 @@ export type DraftAttribute = {
   type: string;
   value: string;
   uri: string | null;
+  required?: boolean;
 };
 
 export type SublocationDraftPayload = {
