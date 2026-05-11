@@ -111,12 +111,6 @@ export default function VesselParticularScreen() {
       
       setIsSaving(false);
       setShowSuccess(true);
-      
-      // Delay navigation back so they can see the success state
-      setTimeout(() => {
-        setShowSuccess(false);
-        navigation.goBack();
-      }, 1500);
     } catch (err) {
       setIsSaving(false);
       console.error('Save failed', err);
@@ -180,17 +174,33 @@ export default function VesselParticularScreen() {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
-      {showSuccess && (
-        <View style={[styles.successToast, { top: insets.top + 80 }]}>
-          <LinearGradient
-            colors={['#10B981', '#059669']}
-            style={styles.toastGradient}
-          >
-            <Check size={20} color="#FFFFFF" />
-            <Text style={styles.successText}>Details Saved Successfully!</Text>
-          </LinearGradient>
+      <Modal
+        visible={showSuccess}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successPopup}>
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              style={styles.successIconCircle}
+            >
+              <Check size={40} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={styles.successPopupTitle}>Saved Successfully!</Text>
+            <Text style={styles.successPopupText}>Vessel particulars have been updated in the local database.</Text>
+            <TouchableOpacity 
+              style={styles.successPopupButton}
+              onPress={() => {
+                setShowSuccess(false);
+                navigation.goBack();
+              }}
+            >
+              <Text style={styles.successPopupButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
+      </Modal>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.iconHeader}>
@@ -418,29 +428,56 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     fontWeight: '500',
   },
-  successToast: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    zIndex: 100,
+  successModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  toastGradient: {
-    flexDirection: 'row',
+  successPopup: {
+    backgroundColor: '#FFFFFF',
+    width: '80%',
+    borderRadius: 32,
+    padding: 32,
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  successText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    marginLeft: 10,
+  successIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successPopupTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  successPopupText: {
     fontSize: 15,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  successPopupButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  successPopupButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

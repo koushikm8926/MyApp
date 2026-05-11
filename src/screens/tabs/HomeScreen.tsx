@@ -11,12 +11,11 @@ import {
   Modal, 
   FlatList, 
   TextInput, 
-  KeyboardAvoidingView, 
   ActivityIndicator,
   StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Car, Plus, X, Search, Filter, Hash, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Calendar, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, Tag, Info, ChevronDown, Edit2, Camera, Sparkles, Layers, Ship, TrendingUp, AlertCircle, MoreVertical, FileText, PaintBucket } from 'lucide-react-native';
+import { Car, X, Search, Filter, ChevronRight, CheckCircle2, Clock, MapPin, Navigation, Edit, Trash2, Droplets, ArrowRight, Shield, Map as MapIcon, Activity, Play, Image as ImageIcon, ClipboardCheck, ChevronDown, Camera, Sparkles, Layers, Ship, TrendingUp, AlertCircle, MoreVertical, FileText, PaintBucket } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useInspectionStore } from '../../store/useInspectionStore';
@@ -95,24 +94,34 @@ export default function Home() {
   const [isFilterVisible, setFilterVisible] = useState(false);
   const [sortBy, setSortBy] = useState('recent');
 
-  const [isAddVesselVisible, setAddVesselVisible] = useState(false);
-  const [selectedMake, setSelectedMake] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [customMake, setCustomMake] = useState('');
-  const [customModel, setCustomModel] = useState('');
-  const [year, setYear] = useState('');
-  const [plate, setPlate] = useState('');
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isMakeDropdownOpen, setIsMakeDropdownOpen] = useState(false);
-  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      loadInspections(user.id);
-      loadVessels(user.id);
-    }
+    const initializeApp = async () => {
+      if (user) {
+        await loadInspections(user.id);
+        const vessels = await databaseService.getVessels(user.id);
+        
+        let targetVessel = vessels[0];
+        if (!targetVessel) {
+          // Create a default vessel if none exists
+          const defaultVessel = {
+            id: 'default-vessel',
+            userId: user.id,
+            make: 'General',
+            model: 'Vessel',
+            year: new Date().getFullYear().toString(),
+            plate: 'N/A'
+          };
+          await databaseService.addVehicle(defaultVessel);
+          targetVessel = defaultVessel;
+        }
+
+        // Auto-start or resume inspection
+        await startInspection(user.id, targetVessel.id, `${targetVessel.make} ${targetVessel.model}`, targetVessel.plate);
+      }
+    };
+    initializeApp();
   }, [user]);
 
   const loadVessels = async (userId: string) => {
@@ -124,42 +133,6 @@ export default function Home() {
     }
   };
 
-  const handleAddVessel = async () => {
-    const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
-    const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
-
-    if (!user || !finalMake || !finalModel) return;
-    
-    setIsSubmitting(true);
-    try {
-      await databaseService.addVessel({
-        id: Math.random().toString(36).substring(7),
-        userId: user.id,
-        make: finalMake,
-        model: finalModel,
-        year,
-        plate
-      });
-      setAddVesselVisible(false);
-      setSelectedMake('');
-      setSelectedModel('');
-      setCustomMake('');
-      setCustomModel('');
-      setYear('');
-      setPlate('');
-      if (user) loadVessels(user.id);
-    } catch (err) {
-      console.error('Failed to add vessel', err);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const isFormValid = () => {
-    const finalMake = selectedMake === 'Other / Custom' ? customMake : selectedMake;
-    const finalModel = selectedModel === 'Other / Custom' ? customModel : selectedModel;
-    return finalMake.trim().length > 0 && finalModel.trim().length > 0;
-  };
 
   const filteredVessels = vessels.filter(v => 
     `${v.make} ${v.model}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -183,6 +156,8 @@ export default function Home() {
   const inspectionData = currentInspection ? JSON.parse(currentInspection.data || '{}') : {};
 
   const isStepCompleted = (id: string, dataKey: string) => {
+    if (!currentInspection) return false;
+    
     if (id === 'pre-inspection') {
       const subKeys = ['vesselParticulars', 'crewList', 'cleaningEquipment', 'lastCargoHistory'];
       return subKeys.every(key => {
@@ -190,7 +165,20 @@ export default function Home() {
         return section && Object.keys(section).length > 0 && Object.values(section).some(v => v !== '' && v !== null && v !== undefined);
       });
     }
-    return !!inspectionData[dataKey];
+    
+    const section = inspectionData[dataKey];
+    if (!section) return false;
+    
+    // Check if it's an object and has at least one non-empty value
+    if (typeof section === 'object' && section !== null) {
+      return Object.values(section).some(v => v !== '' && v !== null && v !== undefined);
+    }
+    
+    return !!section;
+  };
+
+  const handleTimelinePress = (item: typeof INSPECTION_OPTIONS[0]) => {
+    navigation.navigate(item.screen);
   };
 
   const handleSelectVessel = async (vessel: any) => {
@@ -240,7 +228,8 @@ export default function Home() {
             </TouchableOpacity>
           </View>
 
-          {/* Moved Title & Subtitle here */}
+
+          {/* Title & Subtitle */}
           <View style={styles.headerTextSection}>
             <Text style={styles.sectionTitle}>Inspection Sequence</Text>
             <Text style={styles.sectionSubtitle}>Complete the steps below for hold cleaning</Text>
@@ -281,11 +270,16 @@ export default function Home() {
                     {/* Right Content Card */}
                     <TouchableOpacity 
                       style={[styles.timelineCard, completed && styles.completedCard]}
-                      onPress={() => navigation.navigate(item.screen)}
+                      onPress={() => handleTimelinePress(item)}
                       activeOpacity={0.7}
                     >
                       <View style={styles.cardContent}>
                         <View style={styles.cardTitleRow}>
+                          <View style={styles.stepIndicator}>
+                            <Text style={[styles.stepText, completed && styles.completedStepText]}>
+                              STEP {index + 1}
+                            </Text>
+                          </View>
                           <Text style={[styles.cardTitle, completed && styles.completedTitle]}>
                             {item.title}
                           </Text>
@@ -328,12 +322,6 @@ export default function Home() {
                 <Text style={styles.modalSubtitle}>Identify the target for inspection</Text>
               </View>
               <View style={styles.modalHeaderActions}>
-                <TouchableOpacity 
-                  style={styles.headerAddBtn} 
-                  onPress={() => setAddVesselVisible(true)}
-                >
-                  <Plus size={20} color="#3B82F6" />
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.closeBtn} onPress={() => setModalVisible(false)}>
                   <X size={24} color="#64748B" />
                 </TouchableOpacity>
@@ -383,227 +371,13 @@ export default function Home() {
             ) : (
               <View style={styles.emptyVessels}>
                 <Car size={48} color="#CBD5E1" style={{ marginBottom: 16 }} />
-                <Text style={styles.emptyVesselsText}>No vessels registered yet</Text>
-                <TouchableOpacity 
-                  style={styles.addVesselBtn}
-                  onPress={() => setAddVesselVisible(true)}
-                >
-                  <Text style={styles.addVesselBtnText}>Register Your First Vessel</Text>
-                </TouchableOpacity>
+                <Text style={styles.emptyVesselsText}>No vessels assigned yet</Text>
               </View>
             )}
           </View>
         </View>
       </Modal>
 
-      {/* Add Vessel Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isAddVesselVisible}
-        onRequestClose={() => setAddVesselVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View style={[styles.modalContent, { maxHeight: '90%' }]}>
-            <View style={styles.modalIndicator} />
-            <View style={styles.modalHeader}>
-              <View>
-                <Text style={styles.modalTitle}>Register Vessel</Text>
-                <Text style={styles.modalSubtitle}>Enter details for the permanent record</Text>
-              </View>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setAddVesselVisible(false)}>
-                <X size={24} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
-              <View style={styles.form}>
-                
-                {/* BRAND DROPDOWN */}
-                <Text style={styles.inputLabel}>MANUFACTURER</Text>
-                <TouchableOpacity 
-                  style={[styles.inputGroup, isMakeDropdownOpen && styles.inputGroupOpen]} 
-                  onPress={() => {
-                    setIsMakeDropdownOpen(!isMakeDropdownOpen);
-                    setIsModelDropdownOpen(false);
-                    setIsYearDropdownOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Tag size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <Text style={[styles.input, !selectedMake && { color: '#94A3B8' }]}>
-                    {selectedMake || 'Select Brand'}
-                  </Text>
-                  <ChevronDown size={18} color="#94A3B8" />
-                </TouchableOpacity>
-
-                {isMakeDropdownOpen && (
-                  <View style={styles.dropdownContainer}>
-                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                      {CAR_BRANDS.map(b => (
-                        <TouchableOpacity 
-                          key={b.brand} 
-                          style={[styles.dropdownItem, selectedMake === b.brand && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setSelectedMake(b.brand);
-                            setSelectedModel('');
-                            setIsMakeDropdownOpen(false);
-                          }}
-                        >
-                          <Text style={[styles.dropdownItemText, selectedMake === b.brand && styles.dropdownItemTextActive]}>{b.brand}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                {selectedMake === 'Other / Custom' && (
-                  <View style={styles.inputGroup}>
-                    <Edit2 size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter Custom Brand Name"
-                      value={customMake}
-                      onChangeText={setCustomMake}
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                )}
-
-                {/* MODEL DROPDOWN */}
-                <Text style={styles.inputLabel}>MODEL</Text>
-                <TouchableOpacity 
-                  style={[
-                    styles.inputGroup, 
-                    isModelDropdownOpen && styles.inputGroupOpen,
-                    !selectedMake && styles.inputGroupDisabled
-                  ]} 
-                  onPress={() => {
-                    if (!selectedMake) return;
-                    setIsModelDropdownOpen(!isModelDropdownOpen);
-                    setIsMakeDropdownOpen(false);
-                    setIsYearDropdownOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                  disabled={!selectedMake}
-                >
-                  <Car size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <Text style={[styles.input, !selectedModel && { color: '#94A3B8' }]}>
-                    {selectedModel || 'Select Model'}
-                  </Text>
-                  <ChevronDown size={18} color="#94A3B8" />
-                </TouchableOpacity>
-
-                {isModelDropdownOpen && selectedMake && (
-                  <View style={styles.dropdownContainer}>
-                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                      {(CAR_BRANDS.find(b => b.brand === selectedMake)?.models || []).concat(['Other / Custom']).map(m => (
-                        <TouchableOpacity 
-                          key={m} 
-                          style={[styles.dropdownItem, selectedModel === m && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setSelectedModel(m);
-                            setIsModelDropdownOpen(false);
-                          }}
-                        >
-                          <Text style={[styles.dropdownItemText, selectedModel === m && styles.dropdownItemTextActive]}>{m}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                {selectedModel === 'Other / Custom' && (
-                  <View style={styles.inputGroup}>
-                    <Edit2 size={18} color="#94A3B8" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Enter Custom Model Name"
-                      value={customModel}
-                      onChangeText={setCustomModel}
-                      placeholderTextColor="#94A3B8"
-                    />
-                  </View>
-                )}
-
-                {/* YEAR DROPDOWN */}
-                <Text style={styles.inputLabel}>MANUFACTURE YEAR</Text>
-                <TouchableOpacity 
-                  style={[styles.inputGroup, isYearDropdownOpen && styles.inputGroupOpen]} 
-                  onPress={() => {
-                    setIsYearDropdownOpen(!isYearDropdownOpen);
-                    setIsMakeDropdownOpen(false);
-                    setIsModelDropdownOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Calendar size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <Text style={[styles.input, !year && { color: '#94A3B8' }]}>
-                    {year || 'Select Year'}
-                  </Text>
-                  <ChevronDown size={18} color="#94A3B8" />
-                </TouchableOpacity>
-
-                {isYearDropdownOpen && (
-                  <View style={styles.dropdownContainer}>
-                    <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                      {YEARS.map(y => (
-                        <TouchableOpacity 
-                          key={y} 
-                          style={[styles.dropdownItem, year === y && styles.dropdownItemActive]}
-                          onPress={() => {
-                            setYear(y);
-                            setIsYearDropdownOpen(false);
-                          }}
-                        >
-                          <Text style={[styles.dropdownItemText, year === y && styles.dropdownItemTextActive]}>{y}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-
-                <Text style={styles.inputLabel}>IDENTIFICATION</Text>
-                <View style={styles.inputGroup}>
-                  <Hash size={18} color="#94A3B8" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Plate Number"
-                    value={plate}
-                    onChangeText={setPlate}
-                    placeholderTextColor="#94A3B8"
-                  />
-                </View>
-
-                <View style={styles.infoBox}>
-                  <Info size={16} color="#3B82F6" />
-                  <Text style={styles.infoText}>Accurate details ensure compliance with international maritime inspection standards.</Text>
-                </View>
-
-                <TouchableOpacity 
-                  style={[styles.submitButton, !isFormValid() && styles.submitButtonDisabled]}
-                  onPress={handleAddVessel}
-                  disabled={!isFormValid() || isSubmitting}
-                >
-                  <LinearGradient
-                    colors={!isFormValid() ? ['#E2E8F0', '#E2E8F0'] : COLORS.primaryGradient}
-                    style={styles.submitGradient}
-                  >
-                    {isSubmitting ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.submitButtonText}>Confirm Registration</Text>
-                    )}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 }
@@ -629,8 +403,61 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerTextSection: {
+  vesselPickerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     marginTop: 20,
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 4,
+  },
+  vesselPickerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  vesselPickerInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  vesselPickerLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  vesselPickerValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  vesselPickerAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  vesselPickerActionText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#3B82F6',
+    marginRight: 4,
+  },
+  headerTextSection: {
+    marginTop: 24,
   },
   greetingText: {
     fontSize: 14,
@@ -756,8 +583,23 @@ const styles = StyleSheet.create({
   cardTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  stepIndicator: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  stepText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  completedStepText: {
+    color: '#059669',
   },
   cardTitle: {
     fontSize: 15,
@@ -780,11 +622,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completedCard: {
-    borderColor: '#D1FAE5',
-    backgroundColor: '#F8FAFC',
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
   },
   completedTitle: {
     color: '#059669',
+    fontWeight: '900',
   },
   statusPill: {
     backgroundColor: '#ECFDF5',
@@ -798,14 +642,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
-  },
-
-  completedCard: {
-    borderColor: '#D1FAE5',
-    backgroundColor: '#F8FAFC',
-  },
-  completedTitle: {
-    color: '#059669',
   },
 
   // Modal Styles remain essentially the same but polished
@@ -851,15 +687,6 @@ const styles = StyleSheet.create({
   modalHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  headerAddBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
   },
   closeBtn: {
     width: 44,
@@ -946,138 +773,5 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontWeight: '600',
     textAlign: 'center',
-  },
-  addVesselBtn: {
-    marginTop: 20,
-    backgroundColor: '#3B82F6',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 16,
-  },
-  addVesselBtnText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  formScroll: {
-    marginTop: 8,
-  },
-  form: {
-    paddingBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#64748B',
-    marginBottom: 10,
-    letterSpacing: 1,
-    marginTop: 16,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    height: 56,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  inputGroupDisabled: {
-    opacity: 0.5,
-    backgroundColor: '#F1F5F9',
-  },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  inputGroupOpen: {
-    borderColor: '#3B82F6',
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    marginBottom: 0,
-  },
-  dropdownContainer: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-    borderTopWidth: 0,
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    height: 150,
-  },
-  dropdownScroll: {
-    flex: 1,
-  },
-  dropdownItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  dropdownItemActive: {
-    backgroundColor: '#EEF2FF',
-  },
-  dropdownItemText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#0F172A',
-  },
-  dropdownItemTextActive: {
-    color: '#3B82F6',
-    fontWeight: '800',
-  },
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#EFF6FF',
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  infoText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 13,
-    color: '#1E40AF',
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  submitButton: {
-    marginTop: 32,
-    height: 60,
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 0.5,
   },
 });

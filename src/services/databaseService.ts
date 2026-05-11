@@ -198,10 +198,6 @@ export const databaseService = {
       throw error;
     }
   },
-
-  async addVessel(vessel: { id: string; userId: string; make: string; model: string; year: string; plate: string }) {
-    return this.addVehicle(vessel);
-  },
 };
 
 export const initDatabase = async () => {

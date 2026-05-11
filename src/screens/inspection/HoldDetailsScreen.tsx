@@ -82,6 +82,55 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
 
   const completedShots = shots.filter((s) => s.completed).length;
 
+  const renderShotCard = (shot: any, wide: boolean = false, extraWide: boolean = false) => {
+    const isSpecial = shot.id === 's6';
+    const color = isSpecial ? '#1D8F5A' : '#4A90E2';
+    const bg = isSpecial ? '#EAF8F1' : '#EEF5FF';
+    
+    return (
+      <TouchableOpacity
+        style={[
+          styles.shotCard,
+          wide && styles.wideShotCard,
+          extraWide && styles.extraWideShotCard,
+          {
+            borderColor: shot.completed ? '#10B981' : color,
+            backgroundColor: shot.completed ? '#F0FDF4' : bg,
+            borderStyle: shot.completed ? 'solid' : 'dashed',
+          },
+        ]}
+        onPress={() => onTakeShot(hold.id, shot.id)}
+        activeOpacity={0.8}
+      >
+        {shot.badge && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{shot.badge}</Text>
+          </View>
+        )}
+
+        {shot.completed && shot.uri ? (
+          <Image source={{ uri: shot.uri }} style={styles.shotImage} />
+        ) : (
+          <Camera size={26} color={color} style={styles.shotIcon} />
+        )}
+
+        <Text style={[styles.shotCardTitle, { color: shot.completed ? '#065F46' : color }]}>
+          {shot.label}
+        </Text>
+
+        <Text style={[styles.shotCardSubtitle, { color: shot.completed ? '#059669' : color }]}>
+          shot {shot.id.replace('s', '')} {shot.id === 's5' ? '· ↓' : shot.id === 's6' ? '· upward ↑' : ''}
+        </Text>
+
+        {shot.completed && (
+          <View style={styles.completedIndicator}>
+            <CheckCircle2 size={12} color="#FFF" />
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={styles.holdPage}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -107,49 +156,32 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
             </View>
           </View>
 
-          <View style={styles.hexagonWrapper}>
-            <View style={styles.hexagonContainer}>
-              {/* CENTER CARD */}
-              <View style={[styles.hexCard, styles.centerCard]}>
-                <Ship size={24} color="#000" style={styles.hexIconRotate} />
-                <Text style={styles.centerText}>{hold.title.toUpperCase()}</Text>
-              </View>
+          <View style={styles.gridWrapper}>
+            <Text style={styles.topLabel}>↑ FWD · HOLD INTERIOR</Text>
 
-              {shots.map((shot) => {
-                const positionStyle = styles[`${shot.position}Card` as keyof typeof styles];
-                return (
-                  <TouchableOpacity 
-                    key={shot.id}
-                    style={[
-                      styles.hexCard,
-                      positionStyle,
-                      shot.completed && styles.hexCardCompleted
-                    ]}
-                    onPress={() => onTakeShot(hold.id, shot.id)}
-                    activeOpacity={0.9}
-                  >
-                    {shot.completed && shot.uri ? (
-                      <View style={styles.hexImageContainer}>
-                        <Image source={{ uri: shot.uri }} style={styles.hexImage} />
-                        <View style={styles.hexImageOverlay}>
-                           <CheckCircle2 size={14} color="#10B981" style={styles.hexIconRotate} />
-                        </View>
-                      </View>
-                    ) : (
-                      <View style={styles.hexEmptyState}>
-                         <Camera size={20} color="#94A3B8" style={styles.hexIconRotate} />
-                         <Text style={styles.hexLabel}>{shot.label.split(' ')[0]}</Text>
-                         {shot.badge && (
-                            <View style={styles.hexBadge}>
-                              <Text style={styles.hexBadgeText}>{shot.badge}</Text>
-                            </View>
-                         )}
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+            {/* TOP ROW: Forward bulkhead (s1) */}
+            <View style={styles.centerRow}>
+              {renderShotCard(shots.find(s => s.id === 's1')!, true)}
             </View>
+
+            {/* MIDDLE ROW: Port (s3), Tank top (s5), Starboard (s4) */}
+            <View style={styles.row}>
+              {renderShotCard(shots.find(s => s.id === 's3')!)}
+              {renderShotCard(shots.find(s => s.id === 's5')!)}
+              {renderShotCard(shots.find(s => s.id === 's4')!)}
+            </View>
+
+            {/* CENTER GREEN ROW: Hold interior (s6) */}
+            <View style={styles.centerRow}>
+              {renderShotCard(shots.find(s => s.id === 's6')!, false, true)}
+            </View>
+
+            {/* BOTTOM ROW: Aft bulkhead (s2) */}
+            <View style={styles.centerRow}>
+              {renderShotCard(shots.find(s => s.id === 's2')!, true)}
+            </View>
+
+            <Text style={styles.bottomLabel}>↓ AFT</Text>
           </View>
         </View>
 
@@ -527,133 +559,109 @@ const styles = StyleSheet.create({
     backgroundColor: '#4F46E5',
     borderRadius: 3,
   },
-  // Hexagon Layout Styles
-  hexagonWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 20,
-    backgroundColor: '#F8FAFC',
-    marginHorizontal: 24,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  hexagonContainer: {
-    width: 320,
-    height: 320,
-    position: 'relative',
-  },
-  hexCard: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#1E293B',
+  // Mandatory Shots Grid Layout
+  gridWrapper: {
+    backgroundColor: '#fff',
     borderRadius: 24,
-    position: 'absolute',
+    borderWidth: 1.5,
+    borderColor: '#D9D9D9',
+    paddingVertical: 28,
+    paddingHorizontal: 4, // Aggressively reduced padding
+    marginHorizontal: 8, // Aggressively reduced outer margin
+  },
+  topLabel: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#94A3B8',
+    marginBottom: 20,
+    letterSpacing: 1,
+  },
+  bottomLabel: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#94A3B8',
+    marginTop: 10,
+    letterSpacing: 1,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center', // Centered to control gaps precisely
+    marginBottom: 16,
+  },
+  centerRow: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  shotCard: {
+    width: (width - 16 - 8 - 12) / 3, // Further maximized for reduced margins
+    marginHorizontal: 2,
+    minHeight: 110,
+    borderWidth: 2,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    transform: [{ rotate: '45deg' }],
+    paddingHorizontal: 2,
+    position: 'relative',
     overflow: 'hidden',
   },
-  hexCardCompleted: {
-    borderColor: '#10B981',
-    borderWidth: 2,
+  wideShotCard: {
+    width: (width - 16 - 8) * 0.5, // Scaled for new container width
   },
-  centerCard: {
-    left: 110,
-    top: 110,
-    backgroundColor: '#22D3EE',
-    zIndex: 20,
-    borderWidth: 0,
+  extraWideShotCard: {
+    width: (width - 16 - 8) * 0.75, // Scaled for new container width
   },
-  topCard: {
-    left: 110,
-    top: 0,
+  shotIcon: {
+    marginBottom: 8,
   },
-  topLeftCard: {
-    left: 20,
-    top: 60,
-  },
-  topRightCard: {
-    right: 20,
-    top: 60,
-  },
-  bottomCard: {
-    left: 110,
-    bottom: 0,
-  },
-  bottomLeftCard: {
-    left: 20,
-    bottom: 60,
-  },
-  bottomRightCard: {
-    right: 20,
-    bottom: 60,
-  },
-  hexIconRotate: {
-    transform: [{ rotate: '-45deg' }],
-  },
-  hexLabel: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 4,
-    textAlign: 'center',
-    transform: [{ rotate: '-45deg' }],
-  },
-  centerText: {
-    color: '#0F172A',
-    fontSize: 10,
-    fontWeight: '900',
-    marginTop: 4,
-    letterSpacing: 1,
-    transform: [{ rotate: '-45deg' }],
-    textAlign: 'center',
-  },
-  hexEmptyState: {
+  shotImage: {
     width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  hexImageContainer: {
-    width: '142%', // Compensate for 45deg rotation to fill the card
-    height: '142%',
-    transform: [{ rotate: '-45deg' }],
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  hexImage: {
-    width: '100%',
-    height: '100%',
+    height: 50,
+    borderRadius: 8,
+    marginBottom: 8,
     resizeMode: 'cover',
   },
-  hexImageOverlay: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 10,
-    padding: 2,
+  shotCardTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 14,
   },
-  hexBadge: {
-    backgroundColor: '#22D3EE',
+  shotCardSubtitle: {
+    fontSize: 10,
+    marginTop: 4,
+    opacity: 0.8,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  badge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: '#B8F5CE',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
-    marginTop: 4,
-    transform: [{ rotate: '-45deg' }],
+    borderRadius: 6,
+    zIndex: 1,
   },
-  hexBadgeText: {
+  badgeText: {
     fontSize: 8,
     fontWeight: '900',
-    color: '#000',
+    color: '#1D8F5A',
+  },
+  completedIndicator: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: '#10B981',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
   zonesList: {
     paddingHorizontal: 24,

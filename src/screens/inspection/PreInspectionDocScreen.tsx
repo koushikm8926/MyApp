@@ -127,7 +127,7 @@ export default function PreInspectionDocScreen() {
                     
                     <View style={styles.cardContent}>
                       <View style={styles.titleRow}>
-                        <Text style={styles.cardTitle}>{item.title}</Text>
+                        <Text style={styles.cardTitle}>{index + 1}. {item.title}</Text>
                         {completed && (
                           <View style={styles.completedBadge}>
                             <CheckCircle2 size={12} color="#10B981" />
