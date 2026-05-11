@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { ArrowLeft, Camera, CheckCircle2, Plus, Wand2, Save, FileText, AlertCircle } from 'lucide-react-native';
@@ -118,6 +118,13 @@ export default function SublocationScreen() {
   };
 
   const handleComplete = () => {
+    // Basic validation: ensure all required attributes have a value
+    const missingRequired = attributes.some(a => a.required && (!a.value || a.value === a.type));
+    if (missingRequired) {
+      Alert.alert('Missing Information', 'Please provide a condition for all mandatory properties.');
+      return;
+    }
+
     if (zoneId && sublocationId) {
       markSublocationComplete(zoneId, sublocationId);
     }
