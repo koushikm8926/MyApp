@@ -131,7 +131,7 @@ function SublocationPanel({
   };
 
   const handleComplete = () => {
-    markSublocationComplete(zoneId, sublocationId);
+    markSublocationComplete(holdId, zoneId, sublocationId);
     onComplete();
   };
 
@@ -151,57 +151,66 @@ function SublocationPanel({
               <FileText size={18} color="#4F46E5" />
               <Text style={styles.evidenceSectionTitle}>Attribute Evidence</Text>
            </View>
-          {attributes.map((attr, index) => (
-            <View key={attr.id} style={styles.attributeRow}>
-              <View style={styles.attributeInputContainer}>
-                <View style={styles.attributeLabelRow}>
-                  <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
+          {attributes.map((attr, index) => {
+            const isOther = attr.value.includes('Other') || (!PREDEFINED_CONDITIONS.includes(attr.value) && attr.value !== '');
+            
+            return (
+              <View key={attr.id} style={styles.attributeCard}>
+                <View style={styles.attributeMainRow}>
+                  <View style={styles.attributePickerContainer}>
+                    <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
+                    <TouchableOpacity 
+                      style={styles.conditionPicker}
+                      onPress={() => setActiveDropdownIndex(index)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.conditionPickerText, !attr.value && { color: '#94A3B8' }]}>
+                        {attr.value || 'Select Condition...'}
+                      </Text>
+                      <FileText size={16} color="#94A3B8" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity 
+                    style={[styles.cameraButton, attr.uri && styles.cameraButtonSuccess]} 
+                    onPress={() => handleTakeShot(attr.id)}
+                    activeOpacity={0.8}
+                  >
+                    {attr.uri ? (
+                      <Image source={{ uri: attr.uri }} style={styles.thumbnail} />
+                    ) : (
+                      <Camera size={20} color="#6366F1" />
+                    )}
+                  </TouchableOpacity>
+
                   {index > 0 && (
-                    <TouchableOpacity onPress={() => handleDeleteAttribute(attr.id)} hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
-                      <Trash2 size={14} color="#EF4444" />
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteAttribute(attr.id)}
+                    >
+                      <Trash2 size={18} color="#EF4444" />
                     </TouchableOpacity>
                   )}
                 </View>
-                <View style={styles.inputWithSelect}>
-                  <TouchableOpacity 
-                    style={styles.dropdownTrigger}
-                    onPress={() => setActiveDropdownIndex(index)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.dropdownText}>SELECT ▼</Text>
-                  </TouchableOpacity>
-                  <TextInput 
-                    style={styles.textInput}
-                    placeholder="Enter condition..."
-                    placeholderTextColor="#94A3B8"
-                    value={attr.value}
-                    onChangeText={(val) => {
-                      const newAttrs = [...attributes];
-                      newAttrs[index].value = val;
-                      setAttributes(newAttrs);
-                    }}
-                  />
-                </View>
-              </View>
 
-              <TouchableOpacity 
-                style={[styles.cameraButton, attr.uri && styles.cameraButtonSuccess]} 
-                onPress={() => handleTakeShot(attr.id)}
-                activeOpacity={0.8}
-              >
-                {attr.uri ? (
-                  <View style={styles.thumbnailContainer}>
-                    <Image source={{ uri: attr.uri }} style={styles.thumbnail} />
-                    <View style={styles.badge}>
-                      <CheckCircle2 size={12} color="#10B981" fill="#FFF" />
-                    </View>
+                {isOther && (
+                  <View style={styles.otherInputContainer}>
+                    <TextInput 
+                      style={styles.otherInput}
+                      placeholder="Specify condition manually..."
+                      placeholderTextColor="#94A3B8"
+                      value={attr.value === 'Other (Specify manually)' ? '' : attr.value}
+                      onChangeText={(val) => {
+                        const newAttrs = [...attributes];
+                        newAttrs[index].value = val;
+                        setAttributes(newAttrs);
+                      }}
+                    />
                   </View>
-                ) : (
-                  <Camera size={20} color="#6366F1" />
                 )}
-              </TouchableOpacity>
-            </View>
-          ))}
+              </View>
+            );
+          })}
           
           <TouchableOpacity style={styles.addButton} onPress={handleAddAttribute} activeOpacity={0.7}>
             <Plus size={16} color="#4F46E5" />
@@ -278,9 +287,7 @@ function SublocationPanel({
                       if (activeDropdownIndex !== null) {
                         const newAttrs = [...attributes];
                         if (cond === 'Other (Specify manually)') {
-                          if (PREDEFINED_CONDITIONS.includes(newAttrs[activeDropdownIndex].value)) {
-                            newAttrs[activeDropdownIndex].value = '';
-                          }
+                          newAttrs[activeDropdownIndex].value = 'Other (Specify manually)';
                         } else {
                           newAttrs[activeDropdownIndex].value = cond;
                         }
@@ -314,9 +321,10 @@ export default function ZoneDetailsScreen() {
   const zoneTitle = route.params?.zoneTitle || 'Zone Details';
   const totalSublocationsParam = route.params?.totalSublocations || SUBLOCATIONS_PER_ZONE;
 
+  const compositeKey = `${holdId}-${zoneId}`;
   const completedByZone = useZoneProgressStore((s) => s.completedByZone);
   const completedIdsForZone =
-    useZoneProgressStore((s) => s.completedByZone[zoneId]) ?? EMPTY_COMPLETED_SUBLOCATION_IDS;
+    useZoneProgressStore((s) => s.completedByZone[compositeKey]) ?? EMPTY_COMPLETED_SUBLOCATION_IDS;
 
   const sublocations = useMemo(
     () =>
@@ -347,7 +355,7 @@ export default function ZoneDetailsScreen() {
   };
 
   const { completed: completedCount, total: totalCount, pct: progressPercentage } =
-    zoneProgressCounts(completedByZone, zoneId, totalSublocationsParam);
+    zoneProgressCounts(completedByZone, compositeKey, totalSublocationsParam);
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -603,62 +611,56 @@ const styles = StyleSheet.create({
   attributesContainer: {
     // padding: 4
   },
-  attributeRow: {
+  attributeCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  attributeMainRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    marginBottom: 16,
   },
-  attributeInputContainer: {
+  attributePickerContainer: {
     flex: 1,
     marginRight: 10,
-  },
-  attributeLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-    paddingHorizontal: 4,
   },
   attributeLabel: {
     fontSize: 10,
     fontWeight: '900',
     color: '#6366F1',
     letterSpacing: 1,
+    marginBottom: 6,
+    paddingLeft: 4,
   },
-  inputWithSelect: {
+  conditionPicker: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 14,
-    height: 52,
-    overflow: 'hidden',
-  },
-  dropdownTrigger: {
-    justifyContent: 'center',
+    borderRadius: 12,
+    height: 48,
     paddingHorizontal: 12,
-    backgroundColor: '#EEF2FF',
-    borderRightWidth: 1,
-    borderRightColor: '#C7D2FE',
-    minWidth: 80,
+    justifyContent: 'space-between',
   },
-  dropdownText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#4F46E5',
-    textAlign: 'center',
-  },
-  textInput: {
-    flex: 1,
-    paddingHorizontal: 12,
+  conditionPickerText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1E293B',
+    flex: 1,
   },
   cameraButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
@@ -666,29 +668,37 @@ const styles = StyleSheet.create({
     borderColor: '#C7D2FE',
   },
   cameraButtonSuccess: {
-    padding: 0,
     borderWidth: 2,
     borderColor: '#10B981',
-    backgroundColor: 'transparent',
   },
-  thumbnailContainer: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 12,
-    position: 'relative',
+  deleteButton: {
+    width: 40,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
   },
   thumbnail: {
     width: '100%',
     height: '100%',
-    borderRadius: 12,
-  },
-  badge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    elevation: 2,
+  },
+  otherInputContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  otherInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    height: 44,
+    paddingHorizontal: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1E293B',
   },
   addButton: {
     flexDirection: 'row',

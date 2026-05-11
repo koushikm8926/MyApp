@@ -9,9 +9,9 @@ export const SUBLOCATIONS_PER_ZONE = 11;
 export const EMPTY_COMPLETED_SUBLOCATION_IDS: string[] = [];
 
 interface ZoneProgressState {
-  /** zoneId → completed sublocation ids */
+  /** key format: 'holdId-zoneId' → completed sublocation ids */
   completedByZone: Record<string, string[]>;
-  markSublocationComplete: (zoneId: string, sublocationId: string) => void;
+  markSublocationComplete: (holdId: string, zoneId: string, sublocationId: string) => void;
 }
 
 export const useZoneProgressStore = create<ZoneProgressState>()(
@@ -19,15 +19,16 @@ export const useZoneProgressStore = create<ZoneProgressState>()(
     (set) => ({
       completedByZone: {},
 
-      markSublocationComplete: (zoneId, sublocationId) => {
-        if (!zoneId || !sublocationId) return;
+      markSublocationComplete: (holdId, zoneId, sublocationId) => {
+        if (!holdId || !zoneId || !sublocationId) return;
+        const compositeKey = `${holdId}-${zoneId}`;
         set((state) => {
-          const prev = state.completedByZone[zoneId] ?? [];
+          const prev = state.completedByZone[compositeKey] ?? [];
           if (prev.includes(sublocationId)) return state;
           return {
             completedByZone: {
               ...state.completedByZone,
-              [zoneId]: [...prev, sublocationId],
+              [compositeKey]: [...prev, sublocationId],
             },
           };
         });

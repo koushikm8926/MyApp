@@ -68,7 +68,8 @@ const ZONES = [
 function ZoneBox({ item, hold }: { item: typeof ZONES[0], hold: typeof HOLDS[0] }) {
   const navigation = useNavigation<any>();
   const completedByZone = useZoneProgressStore((s) => s.completedByZone);
-  const { pct } = zoneProgressCounts(completedByZone, item.id, item.total);
+  const compositeKey = `${hold.id}-${item.id}`;
+  const { pct } = zoneProgressCounts(completedByZone, compositeKey, item.total);
   const completed = pct === 100;
 
   return (
@@ -125,6 +126,14 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
   );
 
   const completedShots = shots.filter((s) => s.completed).length;
+
+  const allZonesCompleted = useMemo(() => {
+    return ZONES.every(zone => {
+      const compositeKey = `${hold.id}-${zone.id}`;
+      const { pct } = zoneProgressCounts(completedByZone, compositeKey, zone.total);
+      return pct === 100;
+    });
+  }, [completedByZone, hold.id]);
 
   const renderShotCard = (shot: any, wide: boolean = false, extraWide: boolean = false) => {
     const isSpecial = shot.id === 's6';
@@ -258,6 +267,28 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
             <Text style={styles.holdLayoutDirection}>↓ AFT</Text>
           </View>
         </View>
+
+        {/* Sign and Upload Button - Visible only when 100% complete */}
+        {allZonesCompleted && completedShots === 6 && (
+          <TouchableOpacity 
+            style={styles.uploadButton}
+            onPress={() => {
+              alert('Hold data signed and uploaded successfully!');
+              // Here we could update status in the DB or store
+            }}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#10B981', '#059669']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.uploadGradient}
+            >
+              <CheckCircle2 size={24} color="#FFF" />
+              <Text style={styles.uploadButtonText}>Sign and upload the data online</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -277,6 +308,8 @@ export default function HoldDetailsScreen() {
 
   const flatListRef = useRef<FlatList>(null);
   const setMandatoryShotUri = useHoldInspectionDraftStore((s) => s.setMandatoryShotUri);
+  const mandatoryShotsUriMap = useHoldInspectionDraftStore((s) => s.mandatoryShotsUriMap);
+  const completedByZone = useZoneProgressStore((s) => s.completedByZone);
 
   const handleTakeShot = (holdId: string, shotId: string) => {
     setActiveShotInfo({ holdId, shotId });
@@ -323,24 +356,45 @@ export default function HoldDetailsScreen() {
         {/* Hold Selector Tabs */}
         <View style={styles.holdSelector}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.holdSelectorScroll}>
-            {HOLDS.map((hold, index) => (
-              <TouchableOpacity 
-                key={hold.id} 
-                onPress={() => handleHoldPress(index)}
-                style={[
-                  styles.holdTab, 
-                  activeIndex === index && styles.holdTabActive
-                ]}
-                activeOpacity={0.9}
-              >
-                <Text style={[
-                  styles.holdTabText, 
-                  activeIndex === index && styles.holdTabTextActive
-                ]}>
-                  HOLD {index + 1}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {HOLDS.map((hold, index) => {
+              // Calculate if this hold is 100% complete
+              const holdShots = mandatoryShotsUriMap?.[hold.id] || {};
+              const shotsCount = Object.keys(holdShots).length;
+              
+              const allZonesForThisHoldCompleted = ZONES.every(zone => {
+                const compositeKey = `${hold.id}-${zone.id}`;
+                const { pct } = zoneProgressCounts(completedByZone, compositeKey, zone.total);
+                return pct === 100;
+              });
+
+              const isFullyComplete = shotsCount === 6 && allZonesForThisHoldCompleted;
+
+              return (
+                <TouchableOpacity 
+                  key={hold.id} 
+                  onPress={() => handleHoldPress(index)}
+                  style={[
+                    styles.holdTab, 
+                    activeIndex === index && styles.holdTabActive,
+                    isFullyComplete && styles.holdTabCompleted
+                  ]}
+                  activeOpacity={0.9}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={[
+                      styles.holdTabText, 
+                      activeIndex === index && styles.holdTabTextActive,
+                      isFullyComplete && styles.holdTabTextCompleted
+                    ]}>
+                      HOLD {index + 1}
+                    </Text>
+                    {isFullyComplete && (
+                      <CheckCircle2 size={10} color="#059669" style={{ marginLeft: 4 }} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </View>
       </LinearGradient>
@@ -464,6 +518,13 @@ const styles = StyleSheet.create({
   },
   holdTabTextActive: {
     color: '#4F46E5',
+  },
+  holdTabCompleted: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#10B981',
+  },
+  holdTabTextCompleted: {
+    color: '#059669',
   },
   activeTabIndicator: {
     display: 'none',
@@ -767,5 +828,30 @@ const styles = StyleSheet.create({
   holdBoxProgressFill: {
     height: '100%',
     backgroundColor: '#4F46E5',
+  },
+  uploadButton: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  uploadGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+  },
+  uploadButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    marginLeft: 12,
+    letterSpacing: 0.5,
   },
 });
