@@ -54,16 +54,60 @@ const MANDATORY_SHOT_SLOTS = [
 ] as const;
 
 const ZONES = [
-  { id: 'z1', title: 'Hatch Cover' },
-  { id: 'z2', title: 'Under Deck Area' },
-  { id: 'z3', title: 'Forward Bulk Head & Stools' },
-  { id: 'z4', title: 'Aft Bulkhead & Stools' },
-  { id: 'z5', title: 'Starboard' },
-  { id: 'z6', title: 'Portside' },
-  { id: 'z7', title: 'Hatch Coaming' },
-  { id: 'z8', title: 'Tank Top' },
-  { id: 'z9', title: 'Ladders' },
+  { id: 'z1', title: "Hatch Covers", subtitle: "11 sub-locations", total: 11, half: true },
+  { id: 'z7', title: "Hatch Coamings", subtitle: "3 sub-locations", total: 3, half: true },
+  { id: 'z3', title: "Forward Bulkhead and Stools", subtitle: "11 sub-locations", total: 11, full: true },
+  { id: 'z6', title: "Portside", subtitle: "Ship side & hoppers · 11 sub-locations", total: 11, half: true },
+  { id: 'z5', title: "Starboard", subtitle: "Ship side & hoppers · 11 sub-locations", total: 11, half: true },
+  { id: 'z4', title: "AFT Bulkhead & Stools", subtitle: "11 sub-locations", total: 11, full: true },
+  { id: 'z2', title: "Under Deck Areas", subtitle: "3 sub-locations", total: 3, half: true },
+  { id: 'z9', title: "Ladders / Accessways", subtitle: "3 sub-locations", total: 3, half: true },
+  { id: 'z8', title: "Tank Top", subtitle: "Includes Bilges · 5 sub-locations", total: 5, full: true },
 ];
+
+function ZoneBox({ item, hold }: { item: typeof ZONES[0], hold: typeof HOLDS[0] }) {
+  const navigation = useNavigation<any>();
+  const completedByZone = useZoneProgressStore((s) => s.completedByZone);
+  const { pct } = zoneProgressCounts(completedByZone, item.id, item.total);
+  const completed = pct === 100;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() =>
+        navigation.navigate('ZoneDetails' as never, {
+          holdId: hold.id,
+          zoneId: item.id,
+          zoneTitle: item.title,
+          totalSublocations: item.total,
+        } as never)
+      }
+      style={[
+        styles.holdBox,
+        item.full ? styles.holdFullBox : styles.holdHalfBox,
+        completed && styles.holdBoxCompleted
+      ]}
+    >
+      <View style={styles.holdBoxHeader}>
+        <Text style={[styles.holdBoxTitle, completed && styles.holdBoxTitleCompleted]}>
+          {item.id.replace('z', '')}. {item.title}
+        </Text>
+        {completed && <CheckCircle2 size={14} color="#10B981" />}
+      </View>
+
+      <Text style={styles.holdBoxSubtitle}>{item.subtitle}</Text>
+      
+      {/* Progress Indicator */}
+      <View style={styles.holdBoxProgressTrack}>
+        <View style={[
+          styles.holdBoxProgressFill, 
+          { width: `${pct}%` },
+          completed && { backgroundColor: '#10B981' }
+        ]} />
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: (holdId: string, shotId: string) => void }) {
   const navigation = useNavigation<any>();
@@ -185,57 +229,33 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
           </View>
         </View>
 
-        {/* Zones Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View>
-              <Text style={styles.sectionTitle}>Detailed Zones</Text>
-              <Text style={styles.sectionSubtitle}>Specific areas to inspect within {hold.title}</Text>
+        {/* Zones Section - Replaced with New Design */}
+        <View style={styles.holdLayoutWrapper}>
+          <Text style={styles.holdLayoutDirection}>↑ FWD · {hold.title.toUpperCase()}</Text>
+
+          <View style={styles.holdLayoutContainer}>
+            <View style={styles.holdLayoutRow}>
+              <ZoneBox item={ZONES[0]} hold={hold} />
+              <ZoneBox item={ZONES[1]} hold={hold} />
             </View>
-          </View>
-          
-          <View style={styles.zonesList}>
-            {ZONES.map((zone) => {
-              const { completed, total, pct } = zoneProgressCounts(
-                completedByZone,
-                zone.id,
-                SUBLOCATIONS_PER_ZONE
-              );
-              return (
-                <TouchableOpacity
-                  key={zone.id}
-                  style={styles.zoneCard}
-                  activeOpacity={0.8}
-                  onPress={() =>
-                    navigation.navigate('ZoneDetails' as never, {
-                      holdId: hold.id,
-                      zoneId: zone.id,
-                      zoneTitle: zone.title,
-                    } as never)
-                  }
-                >
-                  <View style={[styles.zoneIconContainer, pct === 100 && styles.zoneIconCompleted]}>
-                    {pct === 100 ? (
-                      <CheckCircle2 size={20} color="#10B981" />
-                    ) : (
-                      <Layers size={20} color="#8B5CF6" />
-                    )}
-                  </View>
 
-                  <View style={styles.zoneContent}>
-                    <View style={styles.zoneTitleRow}>
-                      <Text style={styles.zoneTitle}>{zone.title}</Text>
-                      <Text style={styles.zonePercent}>{pct}%</Text>
-                    </View>
-                    <View style={styles.zoneProgressBarOuter}>
-                      <View style={[styles.zoneProgressBarInner, { width: `${pct}%` }, pct === 100 && { backgroundColor: '#10B981' }]} />
-                    </View>
-                  </View>
+            <ZoneBox item={ZONES[2]} hold={hold} />
 
-                  <ChevronRight size={18} color="#CBD5E1" />
-                </TouchableOpacity>
-              );
-            })}
+            <View style={styles.holdLayoutRow}>
+              <ZoneBox item={ZONES[3]} hold={hold} />
+              <ZoneBox item={ZONES[4]} hold={hold} />
+            </View>
+
+            <ZoneBox item={ZONES[5]} hold={hold} />
+
+            <View style={styles.holdLayoutRow}>
+              <ZoneBox item={ZONES[6]} hold={hold} />
+              <ZoneBox item={ZONES[7]} hold={hold} />
+            </View>
+
+            <ZoneBox item={ZONES[8]} hold={hold} />
+
+            <Text style={styles.holdLayoutDirection}>↓ AFT</Text>
           </View>
         </View>
       </ScrollView>
@@ -663,62 +683,89 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFF',
   },
-  zonesList: {
-    paddingHorizontal: 24,
-  },
-  zoneCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+  // New Hold Layout Design Styles
+  holdLayoutWrapper: {
     padding: 16,
+    backgroundColor: '#F1F5F9', // Blended with app bg
+  },
+  holdLayoutDirection: {
+    textAlign: "center",
+    fontSize: 13,
+    color: "#64748B",
+    marginVertical: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+  },
+  holdLayoutContainer: {
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
     borderRadius: 24,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
+    padding: 12,
+    backgroundColor: "#FFFFFF",
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  zoneIconContainer: {
-    width: 52,
-    height: 52,
+  holdLayoutRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  holdBox: {
+    backgroundColor: "#F8FAFC",
     borderRadius: 16,
-    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    paddingVertical: 20,
+    paddingHorizontal: 12,
+    marginBottom: 12,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  zoneIconCompleted: {
-    backgroundColor: '#ECFDF5',
+  holdBoxCompleted: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
   },
-  zoneContent: {
-    flex: 1,
-    marginLeft: 16,
-    marginRight: 12,
+  holdHalfBox: {
+    width: "48.5%",
   },
-  zoneTitleRow: {
+  holdFullBox: {
+    width: "100%",
+  },
+  holdBoxHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    justifyContent: 'center',
+    marginBottom: 6,
   },
-  zoneTitle: {
-    flex: 1,
+  holdBoxTitle: {
     fontSize: 15,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginRight: 8,
+    fontWeight: "800",
+    color: "#1E293B",
+    textAlign: "center",
+    marginRight: 6,
   },
-  zonePercent: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#3B82F6',
+  holdBoxTitleCompleted: {
+    color: '#065F46',
   },
-  zoneProgressBarOuter: {
-    height: 6,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 3,
+  holdBoxSubtitle: {
+    fontSize: 11,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 15,
+    fontWeight: '500',
+  },
+  holdBoxProgressTrack: {
+    height: 3,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 1.5,
+    marginTop: 12,
     overflow: 'hidden',
+    width: '60%',
+    alignSelf: 'center',
   },
-  zoneProgressBarInner: {
+  holdBoxProgressFill: {
     height: '100%',
-    backgroundColor: '#3B82F6',
-    borderRadius: 3,
+    backgroundColor: '#4F46E5',
   },
 });

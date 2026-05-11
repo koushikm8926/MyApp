@@ -312,6 +312,7 @@ export default function ZoneDetailsScreen() {
   const holdId = route.params?.holdId || 'unknown-hold';
   const zoneId = route.params?.zoneId || '';
   const zoneTitle = route.params?.zoneTitle || 'Zone Details';
+  const totalSublocationsParam = route.params?.totalSublocations || SUBLOCATIONS_PER_ZONE;
 
   const completedByZone = useZoneProgressStore((s) => s.completedByZone);
   const completedIdsForZone =
@@ -319,7 +320,7 @@ export default function ZoneDetailsScreen() {
 
   const sublocations = useMemo(
     () =>
-      Array.from({ length: SUBLOCATIONS_PER_ZONE }, (_, i) => {
+      Array.from({ length: totalSublocationsParam }, (_, i) => {
         const id = `sub-${i + 1}`;
         const completed = completedIdsForZone.includes(id);
         return {
@@ -346,7 +347,7 @@ export default function ZoneDetailsScreen() {
   };
 
   const { completed: completedCount, total: totalCount, pct: progressPercentage } =
-    zoneProgressCounts(completedByZone, zoneId, SUBLOCATIONS_PER_ZONE);
+    zoneProgressCounts(completedByZone, zoneId, totalSublocationsParam);
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
