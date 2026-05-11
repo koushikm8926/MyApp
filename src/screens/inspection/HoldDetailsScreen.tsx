@@ -187,9 +187,9 @@ function HoldContent({ hold, onTakeShot }: { hold: typeof HOLDS[0], onTakeShot: 
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={styles.sectionTitle}>Mandatory Shots</Text>
-                <View style={[styles.shotCounter, completedShots === 5 && styles.shotCounterCompleted]}>
-                  <Text style={[styles.shotCounterText, completedShots === 5 && styles.shotCounterTextCompleted]}>
-                    {completedShots}/5
+                <View style={[styles.shotCounter, completedShots === 6 && styles.shotCounterCompleted]}>
+                  <Text style={[styles.shotCounterText, completedShots === 6 && styles.shotCounterTextCompleted]}>
+                    {completedShots}/6
                   </Text>
                 </View>
               </View>
