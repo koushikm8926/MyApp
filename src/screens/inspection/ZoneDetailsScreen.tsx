@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions, Modal, Animated } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Image, Dimensions, Modal, Animated, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, CheckCircle2, MapPin, Camera, Plus, Wand2, Trash2, FileText, Save } from 'lucide-react-native';
@@ -131,6 +131,13 @@ function SublocationPanel({
   };
 
   const handleComplete = () => {
+    // Basic validation: ensure all required attributes have a value
+    const missingRequired = attributes.some(a => a.required && (!a.value || a.value === a.type));
+    if (missingRequired) {
+      Alert.alert('Missing Information', 'Please provide a condition for all mandatory properties.');
+      return;
+    }
+
     markSublocationComplete(holdId, zoneId, sublocationId);
     onComplete();
   };
@@ -158,7 +165,9 @@ function SublocationPanel({
               <View key={attr.id} style={styles.attributeCard}>
                 <View style={styles.attributeMainRow}>
                   <View style={styles.attributePickerContainer}>
-                    <Text style={styles.attributeLabel}>PROPERTY {index + 1}</Text>
+                    <Text style={styles.attributeLabel}>
+                      {attr.required ? attr.type.toUpperCase() : `PROPERTY ${index + 1}`}
+                    </Text>
                     <TouchableOpacity 
                       style={styles.conditionPicker}
                       onPress={() => setActiveDropdownIndex(index)}
@@ -183,7 +192,7 @@ function SublocationPanel({
                     )}
                   </TouchableOpacity>
 
-                  {index > 0 && (
+                  {!attr.required && (
                     <TouchableOpacity 
                       style={styles.deleteButton}
                       onPress={() => handleDeleteAttribute(attr.id)}
@@ -350,6 +359,16 @@ export default function ZoneDetailsScreen() {
     if (currentIndex < sublocations.length - 1) {
       setActiveSublocationId(sublocations[currentIndex + 1].id);
     } else {
+      // Check if ALL sublocations are completed
+      const allCompleted = sublocations.every(s => s.status === 'completed');
+      if (!allCompleted) {
+        Alert.alert(
+          'Incomplete Zone', 
+          'The last sub-location is mandatory, and all others must be completed before finishing this zone.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
       navigation.goBack();
     }
   };

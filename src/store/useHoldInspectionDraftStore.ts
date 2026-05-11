@@ -89,5 +89,9 @@ export function useMandatoryShotsUriMap(holdId: string) {
 const EMPTY_SHOT_URI_MAP: Record<string, string> = {};
 
 export function defaultSublocationAttributes(): DraftAttribute[] {
-  return [{ id: '1', type: 'Condition', value: '', uri: null }];
+  return [
+    { id: 'attr-1', type: 'Overall Condition', value: '', uri: null, required: true },
+    { id: 'attr-2', type: 'Cleanliness', value: '', uri: null, required: true },
+    { id: 'attr-3', type: 'Structural Integrity', value: '', uri: null, required: true },
+  ];
 }
