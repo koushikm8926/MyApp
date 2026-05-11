@@ -216,38 +216,7 @@ export default function Home() {
     }
   };
 
-  const renderSpiderCard = (item: any, isCenter = false) => {
-    const Icon = item.icon;
-    const completed = isStepCompleted(item.id, item.dataKey);
-    
-    return (
-      <TouchableOpacity 
-        key={item.id}
-        style={[
-          styles.spiderCard, 
-          isCenter && styles.spiderCardCenter,
-          completed && styles.completedCard
-        ]} 
-        onPress={() => navigation.navigate(item.screen)}
-        activeOpacity={0.7}
-      >
-        <LinearGradient
-          colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
-          style={[styles.spiderIconBg, isCenter && styles.spiderIconBgCenter]}
-        >
-          {completed ? <CheckCircle2 size={isCenter ? 28 : 22} color="#FFF" /> : <Icon size={isCenter ? 28 : 22} color={item.iconColor} />}
-        </LinearGradient>
-        <Text style={[styles.spiderCardTitle, completed && styles.completedTitle]} numberOfLines={2}>
-          {item.title}
-        </Text>
-        {completed && (
-          <View style={styles.spiderCompletedBadge}>
-            <CheckCircle2 size={10} color="#FFF" />
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  };
+
 
   return (
     <View style={styles.container}>
@@ -282,44 +251,60 @@ export default function Home() {
         <View style={styles.mainContent}>
           {/* Inspection Sequence Section */}
           <View style={styles.section}>
+            <View style={styles.timelineContainer}>
+              {INSPECTION_OPTIONS.map((item, index) => {
+                const Icon = item.icon;
+                const completed = isStepCompleted(item.id, item.dataKey);
+                
+                return (
+                  <View key={item.id} style={styles.timelineRow}>
+                    {/* Left Connector (Icon & Line) */}
+                    <View style={styles.timelineConnector}>
+                      <LinearGradient
+                        colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
+                        style={styles.timelineIconBg}
+                      >
+                        {completed ? (
+                          <CheckCircle2 size={24} color="#FFF" />
+                        ) : (
+                          <Icon size={24} color={item.iconColor} />
+                        )}
+                      </LinearGradient>
+                      {index !== INSPECTION_OPTIONS.length - 1 && (
+                        <View style={[styles.timelineLine, completed && { backgroundColor: '#10B981' }]} />
+                      )}
+                    </View>
 
-          <View style={styles.spiderContainer}>
-            {/* Connection Lines (Plus Shape) */}
-            <View style={styles.spiderLinesContainer}>
-              <View style={styles.plusLineVertical} />
-              <View style={styles.plusLineHorizontal} />
-            </View>
-
-            <View style={styles.plusGrid}>
-              {/* Top Row */}
-              <View style={styles.plusRowTop}>
-                <View style={styles.plusSideCard}>
-                  {renderSpiderCard(INSPECTION_OPTIONS[0])}
-                </View>
-              </View>
-
-              {/* Middle Row: Left, Center, Right */}
-              <View style={styles.plusRowMiddle}>
-                <View style={styles.plusSideCard}>
-                  {renderSpiderCard(INSPECTION_OPTIONS[3])}
-                </View>
-                <View style={styles.plusSideCard}>
-                  {renderSpiderCard(INSPECTION_OPTIONS[2])}
-                </View>
-                <View style={styles.plusSideCard}>
-                  {renderSpiderCard(INSPECTION_OPTIONS[1])}
-                </View>
-              </View>
-
-              {/* Bottom Row */}
-              <View style={styles.plusRowBottom}>
-                <View style={styles.plusSideCard}>
-                  {renderSpiderCard(INSPECTION_OPTIONS[4])}
-                </View>
-              </View>
+                    {/* Right Content Card */}
+                    <TouchableOpacity 
+                      style={[styles.timelineCard, completed && styles.completedCard]}
+                      onPress={() => navigation.navigate(item.screen)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.cardContent}>
+                        <View style={styles.cardTitleRow}>
+                          <Text style={[styles.cardTitle, completed && styles.completedTitle]}>
+                            {item.title}
+                          </Text>
+                          {completed && (
+                            <View style={styles.statusPill}>
+                              <Text style={styles.statusPillText}>COMPLETED</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.cardDescription} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      </View>
+                      <View style={styles.chevronContainer}>
+                        <ChevronRight size={20} color={completed ? '#10B981' : '#CBD5E1'} />
+                      </View>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           </View>
-        </View>
       </View>
 
       </ScrollView>
@@ -811,113 +796,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Plus Layout Styles
-  spiderContainer: {
-    width: '100%',
-    height: (width * 0.3) * 3 + 40, // 3 boxes + 2 gaps of 20
-    marginTop: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+  completedCard: {
+    borderColor: '#D1FAE5',
+    backgroundColor: '#F8FAFC',
   },
-  spiderLinesContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 0,
-  },
-  plusLineVertical: {
-    position: 'absolute',
-    width: 2,
-    height: '75%',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 1,
-  },
-  plusLineHorizontal: {
-    position: 'absolute',
-    width: '85%',
-    height: 2,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 1,
-  },
-  plusGrid: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'space-between',
-    paddingVertical: 0,
-    zIndex: 1,
-  },
-  plusRowTop: {
-    alignItems: 'center',
-  },
-  plusRowMiddle: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  plusRowBottom: {
-    alignItems: 'center',
-  },
-  plusSideCard: {
-    width: width * 0.3,
-    height: width * 0.3,
-    marginHorizontal: 10, // horizontal gap / 2
-  },
-  spiderCard: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#F1F5F9',
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 15,
-    elevation: 4,
-  },
-  spiderCardCenter: {
-    // Kept for function signature compatibility but empty as all cards are now uniform
-  },
-  spiderIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  spiderIconBgCenter: {
-    // Kept for function signature compatibility but same as spiderIconBg
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  spiderCardTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#334155',
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  spiderCompletedBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#10B981',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFF',
+  completedTitle: {
+    color: '#059669',
   },
 
   // Modal Styles remain essentially the same but polished
