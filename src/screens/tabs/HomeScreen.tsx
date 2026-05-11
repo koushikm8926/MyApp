@@ -260,6 +260,12 @@ export default function Home() {
                   <View key={item.id} style={styles.timelineRow}>
                     {/* Left Connector (Icon & Line) */}
                     <View style={styles.timelineConnector}>
+                      <View style={[
+                        styles.timelineLine,
+                        index === 0 && { top: '50%' },
+                        index === INSPECTION_OPTIONS.length - 1 && { bottom: '50%' },
+                        completed && { backgroundColor: '#10B981' }
+                      ]} />
                       <LinearGradient
                         colors={completed ? ['#10B981', '#059669'] : item.colors as [string, string]}
                         style={styles.timelineIconBg}
@@ -270,9 +276,6 @@ export default function Home() {
                           <Icon size={24} color={item.iconColor} />
                         )}
                       </LinearGradient>
-                      {index !== INSPECTION_OPTIONS.length - 1 && (
-                        <View style={[styles.timelineLine, completed && { backgroundColor: '#10B981' }]} />
-                      )}
                     </View>
 
                     {/* Right Content Card */}
@@ -701,11 +704,13 @@ const styles = StyleSheet.create({
   timelineRow: {
     flexDirection: 'row',
     marginBottom: 20,
+    // Removed alignItems: 'center' here to allow children to stretch
   },
   timelineConnector: {
-    alignItems: 'center',
-    marginRight: 16,
     width: 48,
+    marginRight: 16,
+    alignItems: 'center',
+    justifyContent: 'center', // Centers the icon vertically
     zIndex: 10,
   },
   timelineIconBg: {
@@ -723,12 +728,11 @@ const styles = StyleSheet.create({
   },
   timelineLine: {
     position: 'absolute',
-    top: 48,
-    bottom: -20,
+    top: 0,
+    bottom: -20, // Matches timelineRow marginBottom to bridge the gap
     width: 2,
     backgroundColor: '#E2E8F0',
     zIndex: 1,
-    borderRadius: 1,
   },
   timelineCard: {
     flex: 1,
